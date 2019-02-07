@@ -1,4 +1,5 @@
 ﻿using Bb.ComponentModel.Attributes;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 
@@ -9,9 +10,9 @@ namespace MyCustoLib1
     public class ClassCustom1
     {
 
-        public ClassCustom1()
+        public ClassCustom1(IConfiguration configuration)
         {
-
+            _configuration = configuration;
         }
 
         [RegisterMethodAttribute("Action1")]
@@ -31,7 +32,7 @@ namespace MyCustoLib1
 
         }
 
-
+        private IConfiguration _configuration;
 
     }
 

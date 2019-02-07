@@ -23,6 +23,10 @@ namespace Bb.ActionBus
 
         public DateTimeOffset ExecuteStoped { get; internal set; }
 
+        public TimeSpan ElapsedExecution { get; internal set; }
+
+        public TimeSpan ElapsedAcquitment { get; internal set; }
+
         public object Result { get; internal set; }
 
     }

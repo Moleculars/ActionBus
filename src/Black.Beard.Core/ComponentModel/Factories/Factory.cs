@@ -11,7 +11,7 @@ namespace Bb.ComponentModel.Factories
         where T : class
     {
 
-        private ObjectActivator<T> factory;
+        private readonly ObjectActivator<T> factory;
 
         /// <summary>
         /// Initializes a new instance of the type <see cref="Factory{T}" /> class. The real type instance is the specified type
@@ -21,7 +21,8 @@ namespace Bb.ComponentModel.Factories
         public Factory(Type type, Type[] types)
         {
             var ctor = type.GetConstructor(types);
-            this.factory = ObjectCreator.GetActivator<T>(ctor);
+            if (ctor != null)
+                factory = ObjectCreator.GetActivator<T>(ctor);
         }
 
         /// <summary>
@@ -31,7 +32,9 @@ namespace Bb.ComponentModel.Factories
         public Factory(params Type[] types)
         {
             var ctor = typeof(T).GetConstructor(types);
-            this.factory = ObjectCreator.GetActivator<T>(ctor);
+            if (ctor != null)
+                factory = ObjectCreator.GetActivator<T>(ctor);
+
         }
 
         /// <summary>
@@ -43,6 +46,8 @@ namespace Bb.ComponentModel.Factories
         {
             return factory(args);
         }
+
+        public bool IsEmpty => factory == null;
 
     }
 

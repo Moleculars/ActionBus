@@ -4,7 +4,9 @@ using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 
 namespace ServiceBusAction
 {
@@ -14,10 +16,7 @@ namespace ServiceBusAction
         public static void Main(string[] args)
         {
 
-            var factory = Bb.ComponentModel.TypeDiscovery.Initialize();
-
             var serviceHostBuilder = CreateServiceHostBuilder(args)
-                .UseStartup<StartupMomListener>()
                 .UseStartup<StartupWeb>()
                 ;
 
@@ -30,18 +29,16 @@ namespace ServiceBusAction
 
                     IConfiguration configuration = (IConfiguration)serviceHost.Services.GetService(typeof(IConfiguration));
                     Globals.SetCulture(configuration.GetValue<string>("Culture"));
-                    Globals.SetFormatDateCulture(configuration.GetValue<string>("FormatDateCulture"));                    
+                    Globals.SetFormatDateCulture(configuration.GetValue<string>("FormatDateCulture"));
 
                     var task = serviceHost.RunAsync();
 
                     // Wait exit
                     Console.CancelKeyPress += (sender, eventArgs) =>
                     {
+
                         Trace.WriteLine("Received a stop notification, engine shutdown");
                         // do something
-
-
-
 
                         Trace.WriteLine("engine main service has stopped.");
                         eventArgs.Cancel = true;

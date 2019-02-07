@@ -9,6 +9,7 @@ namespace ServiceBusAction.Controllers
     [ApiController]
     public class ActionController : ControllerBase
     {
+
         private readonly ActionRepositories _repositories;
 
         public ActionController(Bb.ActionBus.ActionRepositories repositories)
@@ -29,7 +30,15 @@ namespace ServiceBusAction.Controllers
         public void Post([FromBody] ActionOrder value)
         {
 
-            if (!this._repositories.Execute(value))
+            int count = 0;
+            var _count = this.Request.Headers["count"].ToArray();
+            if (_count != null && _count.Length > 0)
+            {
+                string c = _count[0];
+                count = int.Parse(c);
+            }
+
+            if (!this._repositories.Execute(value, count))
                 throw (Exception)value.Result;
 
         }

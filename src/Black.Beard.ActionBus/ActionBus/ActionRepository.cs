@@ -1,36 +1,68 @@
 ﻿using Bb.ComponentModel;
 using Bb.ComponentModel.Attributes;
-using Bb.Core.Helpers;
+using Bb.ComponentModel.Factories;
 using Bb.Core.Pools;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 
 namespace Bb.ActionBus
 {
 
-    internal class ActionRepository<T>
+    internal abstract class ActionRepository
     {
 
-        internal ActionRepository(Func<T> ctor, ITypeReferential typeReferential)
-        {
-            _types = typeReferential;
-            _ctor = ctor;
+        internal abstract void Initialize(Dictionary<string, ActionModel> dic, int countInstance);
 
-            if (Attribute.GetCustomAttribute(ctor().GetType(), typeof(ExposeClassAttribute)) is ExposeClassAttribute attribute)
+    }
+
+    internal class ActionRepository<T> : ActionRepository
+        where T : class
+    {
+
+        internal ActionRepository(ITypeReferential typeReferential, IConfiguration configuration)
+        {
+
+            _types = typeReferential;
+            _configuration = configuration;
+
+            Factory<T> factory = null;
+
+            if (configuration != null)
+            {
+                factory = new Factory<T>(typeof(IConfiguration)); // ?? new Factory<T>();
+                if (!factory.IsEmpty)
+                    _ctor = () => factory.Create(_configuration);
+            }
+
+            if (factory == null || factory.IsEmpty)
+            {
+                factory = new Factory<T>();
+                if (!factory.IsEmpty)
+                    _ctor = () => factory.Create();
+                else
+                    Trace.WriteLine($"failed to create ctor factory for {typeof(T)}", TraceLevel.Error.ToString());
+
+            }
+
+            if (Attribute.GetCustomAttribute(_ctor().GetType(), typeof(ExposeClassAttribute)) is ExposeClassAttribute attribute)
                 _rootName = attribute.DisplayName;
             else
                 _rootName = GetType().Name;
 
         }
 
-        internal void Initialize(Dictionary<string, ActionModel> dic, int countInstance)
+        internal override void Initialize(Dictionary<string, ActionModel> dic, int countInstance)
         {
 
             Type returnType = typeof(List<KeyValuePair<string, string>>);
             var provider = new ActionMethodDiscovery(typeof(T));
             var actions = provider.GetActions<object>(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public, returnType, null);
+
+            Trace.WriteLine($"Register custom type '{typeof(T)}' -> '{_rootName}'");
 
             foreach (var item in actions)
             {
@@ -43,6 +75,8 @@ namespace Bb.ActionBus
                     Origin = item.Origin,
                     Type = item.Type,
                 };
+
+                Trace.WriteLine($"Register custom action '{act.Name}' -> {item.Method.ToString()}");
 
                 dic.Add(act.Name, act);
 
@@ -82,54 +116,10 @@ namespace Bb.ActionBus
         }
 
         private readonly ITypeReferential _types;
+        private readonly IConfiguration _configuration;
         private readonly Func<T> _ctor;
         private readonly string _rootName;
-    }
-
-    internal abstract class ActionModel
-    {
-
-        public string Name { get; internal set; }
-
-        public string Origin { get; internal set; }
-
-        public Type Type { get; internal set; }
-
-        public abstract object Execute(string[] arguments);
-
-        public List<KeyValuePair<string, Type>> Parameters { get; internal set; }
-
-        internal ActionModelDesciptor Sign()
-        {
-            return new ActionModelDesciptor() { Name = Name, Arguments = this.Parameters };
-        }
 
     }
-
-    internal class ActionModel<T> : ActionModel
-    {
-
-        private ObjectPool<T> _pool;
-
-        public ActionModel(ObjectPool<T> pool)
-        {
-            _pool = pool;
-        }
-
-        public Func<T, string[], object> Delegate { get; set; }
-
-        public override object Execute(string[] arguments)
-        {
-            using (var instance = _pool.WaitForGet())
-            {
-                object result = Delegate(instance.Instance, arguments);
-                return result;
-            }
-        }
-
-    }
-
-
-
 
 }

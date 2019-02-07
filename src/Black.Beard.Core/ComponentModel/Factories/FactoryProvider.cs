@@ -4,7 +4,6 @@ using System.Linq;
 namespace Bb.ComponentModel.Factories
 {
 
-
     /// <summary>
     /// Factory provider for use with IOC
     /// </summary>

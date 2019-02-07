@@ -135,7 +135,7 @@ namespace Bb.Logs.Serilog
             base.Dispose(disposing);
             if (disposing)
             {
-                _log.CloseAndFlush();
+                //_log.CloseAndFlush();
                 _log.Dispose();
             }
         }

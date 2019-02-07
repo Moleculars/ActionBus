@@ -23,12 +23,12 @@ namespace ConsoleAction
 
             var factory = TypeDiscovery.Initialize();
 
-            var reps = new ActionRepositories()
-                .Register(() => new ClassCustom1(), 10);
+            var reps = new ActionRepositories(null, null, AcquitmentQueue, DeadQueue, 10)
+                .Register<ClassCustom1>();
 
             var method = reps.GetMethods();
 
-            if (reps.Execute(order))
+            if (reps.Execute(order, 0))
             {
 
             }
@@ -36,5 +36,16 @@ namespace ConsoleAction
             Console.WriteLine("Hello World!");
 
         }
+
+        private static void AcquitmentQueue(object sender, ActionOrderEventArgs e)
+        {
+
+        }
+
+        private static void DeadQueue(object sender, ActionOrderEventArgs e)
+        {
+
+        }
+
     }
 }

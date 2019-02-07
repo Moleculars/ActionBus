@@ -614,12 +614,12 @@ namespace Bb.ComponentModel
         #endregion Factories
 
 
-        public void GetTypeDescriptor(Type type)
-        {
+        //public void GetTypeDescriptor(Type type)
+        //{
 
-            //TypeDescriptor.
+        //    //TypeDescriptor.
 
-        }
+        //}
 
         /// <summary>
         ///     function  return the list of loaded assemblies

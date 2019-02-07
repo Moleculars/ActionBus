@@ -1,12 +1,16 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using Bb.ActionBus;
+using Bb.ComponentModel;
+using Bb.ComponentModel.Attributes;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
-using MyCustoLib1;
 using Swashbuckle.AspNetCore.Swagger;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
@@ -28,6 +32,8 @@ namespace ServiceBusAction
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+
+            Configuration.RegisterCustomCode();
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
 
@@ -64,8 +70,8 @@ namespace ServiceBusAction
                 });
             }
 
-            services.RegisterBusinessActions();
-         
+            services.RegisterBusinessActions(Configuration);
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -139,17 +145,108 @@ namespace ServiceBusAction
         /// <summary>
         /// Add a service which will crawl all modules for top level main menu pages.
         /// </summary>
-        public static IServiceCollection RegisterBusinessActions(this IServiceCollection services)
+        public static IServiceCollection RegisterBusinessActions(this IServiceCollection services, IConfiguration configuration)
         {
 
-               var reps = new Bb.ActionBus.ActionRepositories()
-                .Register(() => new ClassCustom1(), 10)
-                ;
+            var types = TypeDiscovery.Instance.GetTypesWithAttributes(typeof(ExposeClassAttribute));
 
-            services.AddSingleton<Bb.ActionBus.ActionRepositories>(reps);
+            var reps = new ActionRepositories(configuration, services, AcquitmentQueue, DeadQueue, 10);
+
+            foreach (var item in types)
+                reps.Register(item);
+
+            services.AddSingleton(reps);
 
             return services;
         }
+
+        public static void RegisterCustomCode(this IConfiguration configuration)
+        {
+
+            var currentDirectory = Environment.CurrentDirectory;
+            Trace.WriteLine($"current execution directory : {currentDirectory}", TraceLevel.Info.ToString());
+            HashSet<string> _paths = new HashSet<string>();
+
+            Bb.ComponentModel.TypeDiscovery.Initialize();
+
+            var folders = CollectFolders(configuration);
+
+            if (folders.Count > 0)
+            {
+                foreach (var item in folders)
+                {
+                    var dir = new DirectoryInfo(item);
+                    if (dir.Exists)
+                        _paths.Add(dir.FullName);
+                    else
+                    {
+
+                        bool ok = false;
+                        try
+                        {
+                            var newPath = Path.Combine(currentDirectory, item);
+                            var dir2 = new DirectoryInfo(item);
+                            if (dir2.Exists)
+                                _paths.Add(dir2.FullName);
+
+                        }
+                        catch (Exception)
+                        {
+
+                        }
+
+                        if (!ok)
+                        {
+                            if (System.Diagnostics.Debugger.IsAttached)
+                                System.Diagnostics.Debugger.Break();
+
+                            Trace.WriteLine($"{dir.FullName} doesnt exist", TraceLevel.Error.ToString());
+                        }
+                    }
+
+                }
+            }
+
+            if (_paths.Count > 0)
+                TypeDiscovery.Instance.AddDirectories(_paths.ToArray());
+
+        }
+
+        private static List<string> CollectFolders(IConfiguration configuration)
+        {
+
+            List<string> folders = new List<string>();
+
+            for (int i = 0; i < 1000; i++)
+            {
+                var folder = configuration.GetValue<string>($"BusinessMethodFolders:{i}");
+                if (!string.IsNullOrEmpty(folder))
+                    folders.Add(folder);
+                else
+                {
+                    if (i == 0)
+                        Trace.WriteLine("node 'BusinessMethodFolders' not found in the configuration.", TraceLevel.Warning.ToString());
+                    break;
+                }
+            }
+
+            if (folders.Count == 0)
+                Trace.WriteLine("no custom code injected.", TraceLevel.Warning.ToString());
+
+            return folders;
+
+        }
+
+        private static void AcquitmentQueue(object sender, ActionOrderEventArgs e)
+        {
+
+        }
+
+        private static void DeadQueue(object sender, ActionOrderEventArgs e)
+        {
+
+        }
+
     }
 
 }
