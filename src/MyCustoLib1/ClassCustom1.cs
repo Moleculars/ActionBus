@@ -1,12 +1,11 @@
 ﻿using Bb.ComponentModel.Attributes;
 using Microsoft.Extensions.Configuration;
 using System;
-using System.Collections.Generic;
 
 namespace MyCustoLib1
 {
 
-    [ExposeClass("business1")]
+    [ExposeClass("business1", Context = "BusinessAction")]
     public class ClassCustom1
     {
 
@@ -15,24 +14,24 @@ namespace MyCustoLib1
             _configuration = configuration;
         }
 
-        [RegisterMethodAttribute("Action1")]
-        public List<KeyValuePair<string, string>> MyCustomMethodWithBigName(int firstIdentifier, string secondIdentifier)
+        [RegisterMethod("CancelScan", Context = "BusinessAction")]
+        public bool MyCustomMethodWithBigName(Guid uuid)
         {
 
-            return new List<KeyValuePair<string, string>>() { new KeyValuePair<string, string>(firstIdentifier.ToString(), secondIdentifier) };
+            return true;
 
         }
 
 
-        [RegisterMethodAttribute("PushScan")]
-        public List<KeyValuePair<string, string>> PushMessagePudo(string internationalSiteId, string scan)
+        [RegisterMethod("PushScan", Context = "BusinessAction")]
+        public Guid PushMessagePudo(string internationalSiteId, string scan)
         {
 
-            return new List<KeyValuePair<string, string>>() { new KeyValuePair<string, string>("uuid", Guid.NewGuid().ToString()) };
+            return Guid.NewGuid();
 
         }
 
-        private IConfiguration _configuration;
+        private readonly IConfiguration _configuration;
 
     }
 

@@ -157,6 +157,34 @@ namespace Bb.ComponentModel
             return result;
         }
 
+        /// <summary>
+        /// return a list of type that contains specified attibute and filter is valid
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="filter"></param>
+        /// <returns></returns>
+        public List<Type> GetTypesWithAttributes<T>(Func<T, bool> filter) where T : Attribute
+        {
+            var result = new List<Type>();
+            var assemblies = Assemblies().ToArray();
+            result.AddRange(Collect(type =>
+            {
+                var attributes = Attribute.GetCustomAttributes(type, typeof(T));
+
+                if (attributes.Length == 0)
+                    return false;
+
+                foreach (T attribute in attributes)
+                    if (filter(attribute))
+                        return true;
+
+                return false;
+
+            }, assemblies));
+
+            return result;
+        }
+
         public Type ResolveByName(string targetType)
         {
 

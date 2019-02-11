@@ -22,10 +22,12 @@ namespace Bb.ComponentModel.Attributes
         /// <param name="displayName">key for matching ruless</param>
         public ExposeClassAttribute(string displayName)
         {
-            DisplayName = displayName;        
+            this.DisplayName = displayName;
         }
 
-        public string DisplayName { get; }
+        public string DisplayName { get; set; }
+
+        public string Context { get; set; }
 
     }
 

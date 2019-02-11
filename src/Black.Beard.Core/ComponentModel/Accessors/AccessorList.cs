@@ -1,14 +1,8 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
 
 namespace Bb.ComponentModel.Accessors
@@ -146,9 +140,21 @@ namespace Bb.ComponentModel.Accessors
         /// </summary>
         /// <param name="memberName">Name of the member.</param>
         /// <returns></returns>
-        public AccessorItem Get(string memberName)
+        public AccessorItem Get(string memberName, bool respectCase = true)
         {
-            return this[memberName];
+
+            var result = this[memberName];
+
+            if (result == null && !respectCase)
+                foreach (var item in this)
+                    if (item.Name.ToLower() == memberName.ToLower())
+                    {
+                        result = item;
+                        break;
+                    }
+
+            return result;
+
         }
 
         /// <summary>
@@ -161,14 +167,8 @@ namespace Bb.ComponentModel.Accessors
         /// <returns></returns>
         public AccessorItem this[MemberInfo member]
         {
-            get
-            {
-                return this[member.Name];
-            }
-            set
-            {
-                this[member.Name] = value as AccessorItem;
-            }
+            get => this[member.Name];
+            set => this[member.Name] = value as AccessorItem;
         }
 
         /// <summary>

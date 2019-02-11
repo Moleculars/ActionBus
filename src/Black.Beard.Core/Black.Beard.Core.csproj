@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.1</TargetFramework>
-    <RootNamespace>Bb.Core</RootNamespace>
+    <RootNamespace>Bb</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

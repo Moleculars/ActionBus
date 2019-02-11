@@ -10,7 +10,7 @@ namespace Bb.Core.Helpers
         /// Gets the current date time.
         /// </summary>
         /// <value>
-        /// The get now.
+        /// The get now
         /// </value>
         public static DateTimeOffset GetNow => DateTimeOffset.Now.Add(Decale);
 

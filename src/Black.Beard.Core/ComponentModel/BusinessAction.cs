@@ -1,3 +1,6 @@
+using Bb.ComponentModel.Attributes;
+using Bb.Core;
+using Bb.Core.ComponentModel;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -65,7 +68,7 @@ namespace Bb.ComponentModel
                 }
                 );
             var c = Expression.Catch(exceptionVariable, block);
-            var blk2 = Expression.Block(typeof(void), new ParameterExpression[] {  }, new Expression[] { Expression.Assign(variableResult, m2) });
+            var blk2 = Expression.Block(typeof(void), new ParameterExpression[] { }, new Expression[] { Expression.Assign(variableResult, m2) });
             var _try = Expression.TryCatch(blk2, c);
             return _try;
         }
@@ -73,7 +76,13 @@ namespace Bb.ComponentModel
         private MethodCallExpression EmbedLog(Expression[] arguments, MethodCallExpression m, Expression parameters)
         {
             // Build log method
-            List<Expression> _parameterLogResultArgument = new List<Expression>(arguments.Length + 2) { Expression.Constant(RuleName), m };
+            List<Expression> _parameterLogResultArgument = new List<Expression>(arguments.Length + 2) { Expression.Constant(RuleName)};
+
+            if (m.Type.IsValueType)
+                _parameterLogResultArgument.Add(m.SmartConvert(typeof(object)));
+            else
+                _parameterLogResultArgument.Add(m);
+
             List<Expression> _args4 = new List<Expression>(arguments.Length);
             _parameterLogResultArgument.Add(parameters);
             MethodInfo method2 = typeof(BusinessAction<TContext>).GetMethod("LogResult", BindingFlags.Static | BindingFlags.Public);
@@ -105,9 +114,7 @@ namespace Bb.ComponentModel
         /// <returns></returns>
         public static object LogResult(string ruleName, object result, string[] arguments)
         {
-
             var r = result;
-
             string message = $"{ruleName}({string.Join(", ", arguments)})";
             Trace.WriteLine(message);
             return result;
@@ -117,7 +124,6 @@ namespace Bb.ComponentModel
         private static List<Expression> TranslateArguments(Expression[] arguments, ParameterInfo[] parameters)
         {
             List<Expression> _args = new List<Expression>(arguments.Length);
-            var bindings = BindingFlags.Static | BindingFlags.Public;
             for (int i = 0; i < arguments.Length; i++)
             {
 
@@ -125,45 +131,7 @@ namespace Bb.ComponentModel
                 var parameter = parameters[i];
 
                 if (argument.Type != parameter.ParameterType)
-                {
-
-                    if (argument is ConstantExpression c)
-                        argument = Expression.Constant(Convert.ChangeType(c.Value, parameter.ParameterType));
-
-                    else
-                    {
-
-                        var convertMethod = MethodDiscovery.GetMethods(argument.Type, // try to get implicit or explicit opérator
-                                                                        bindings,
-                                                                        parameter.ParameterType,
-                                                                        new List<Type>() { argument.Type }
-                                                            ).FirstOrDefault();
-
-                        if (convertMethod == null)
-                            convertMethod = MethodDiscovery.GetMethods(typeof(Convert),
-                                                                        bindings,
-                                                                        parameter.ParameterType,
-                                                                        new List<Type>() { argument.Type }
-                                                            ).FirstOrDefault();
-                        else
-                        {
-                            // no converter found. 
-                            if (System.Diagnostics.Debugger.IsAttached)
-                                System.Diagnostics.Debugger.Break();
-                        }
-
-                        if (convertMethod != null)
-                            argument = Expression.Call(convertMethod, argument);
-
-                        else
-                        {
-                            if (System.Diagnostics.Debugger.IsAttached)
-                                System.Diagnostics.Debugger.Break();
-                        }
-
-                    }
-
-                }
+                    argument = argument.SmartConvert(parameter.ParameterType);
 
                 _args.Add(argument);
 
@@ -246,14 +214,15 @@ namespace Bb.ComponentModel
 
         //}
 
-        public MethodInfo Method { get; set; }
+        public string Context { get; internal set; }
 
-        public string RuleName { get; set; }
+        public MethodInfo Method { get; internal set; }
 
-        public Type Type { get; set; }
+        public string RuleName { get; internal set; }
 
-        public string Origin { get; set; }
+        public Type Type { get; internal set; }
 
+        public string Origin { get; internal set; }
     }
 
 }

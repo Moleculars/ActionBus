@@ -1,4 +1,5 @@
 ﻿using Bb.ComponentModel;
+using Bb.Core.Helpers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -63,38 +64,44 @@ namespace Bb.ActionBus
             if (!_dic.TryGetValue(order.Name, out ActionModel action))
                 throw new InvalidOperationException(order.Name);
 
-            order.ExecuteStarted = DateTimeOffset.Now;
-
+            order.ExecutedAt = Clock.GetNow;
             List<string> _arg = SortArguments(order, action);
 
             Stopwatch sp = new Stopwatch();
-
             bool ok = false;
             try
             {
-
                 sp.Start();
                 order.Result = action.Execute(_arg.ToArray());
                 sp.Stop();
-                order.ElapsedExecution = sp.Elapsed;
-
-                sp.Restart();
-                AcquitmentQueue?.Invoke(this, new ActionOrderEventArgs(order, _services, tentatives));
-                sp.Stop();
-                order.ElapsedAcquitment = sp.Elapsed;
-
+                Trace.WriteLine(new { Key = "Action", action.Name, ElapsedTime = sp.Elapsed }, Constants.PerfMon);
                 ok = true;
             }
             catch (Exception e)
             {
                 order.Result = e;
-                sp.Restart();
-                DeadQueue?.Invoke(this, new ActionOrderEventArgs(order, _services, tentatives));
-                sp.Stop();
-                order.ElapsedAcquitment = sp.Elapsed;
             }
+            finally
+            {
+                string key = string.Empty;
+                if (order.Result is Exception)
+                {
+                    key = "Deadqueue";
+                    sp.Restart();
+                    DeadQueue?.Invoke(this, new ActionOrderEventArgs(order, _services, tentatives));
+                    sp.Stop();
+                }
+                else
+                {
+                    key = "Acquittement";
+                    sp.Restart();
+                    AcquitmentQueue?.Invoke(this, new ActionOrderEventArgs(order, _services, tentatives));
+                    sp.Stop();
+                }
 
-            order.ExecuteStoped = DateTimeOffset.Now;
+                Trace.WriteLine(new { Key = key, action.Name, ElapsedTime = sp.Elapsed }, Constants.PerfMon);
+
+            }
 
             return ok;
 

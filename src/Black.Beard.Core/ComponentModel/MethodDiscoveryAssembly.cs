@@ -80,6 +80,7 @@ namespace Bb.ComponentModel
                             Type = type,
                             RuleName = attribute.DisplayName,
                             Origin = $"Assembly {type.AssemblyQualifiedName}",
+                            Context = attribute.Context,
                         });
                 }
             }

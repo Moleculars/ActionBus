@@ -58,9 +58,11 @@ namespace Bb.ActionBus
         internal override void Initialize(Dictionary<string, ActionModel> dic, int countInstance)
         {
 
-            Type returnType = typeof(List<KeyValuePair<string, string>>);
             var provider = new ActionMethodDiscovery(typeof(T));
-            var actions = provider.GetActions<object>(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public, returnType, null);
+            var actions = provider.GetActions<object>(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public, null, null)
+                .Where(c => c.Context == "BusinessAction")
+                .ToList()
+                ;
 
             Trace.WriteLine($"Register custom type '{typeof(T)}' -> '{_rootName}'");
 

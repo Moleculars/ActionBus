@@ -22,6 +22,7 @@
     <ProjectReference Include="..\Black.Beard.ActionBus\Black.Beard.ActionBus.csproj" />
     <ProjectReference Include="..\Black.Beard.Core\Black.Beard.Core.csproj" />
     <ProjectReference Include="..\Black.Beard.Logs.Serilog\Black.Beard.Logs.Serilog.csproj" />
+    <ProjectReference Include="..\Black.Beard.RabbitMq\Black.Beard.RabbitMq.csproj" />
     <ProjectReference Include="..\MyCustoLib1\MyCustoLib1.csproj" />
   </ItemGroup>
 

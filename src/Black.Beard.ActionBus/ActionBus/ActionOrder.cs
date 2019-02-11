@@ -17,15 +17,10 @@ namespace Bb.ActionBus
         public DateTimeOffset PushedAt { get; set; }
 
         public string Name { get; set; }
+
         public List<ArgumentOrder> Arguments { get; set; }
 
-        public DateTimeOffset ExecuteStarted { get; internal set; }
-
-        public DateTimeOffset ExecuteStoped { get; internal set; }
-
-        public TimeSpan ElapsedExecution { get; internal set; }
-
-        public TimeSpan ElapsedAcquitment { get; internal set; }
+        public DateTimeOffset ExecutedAt { get; internal set; }
 
         public object Result { get; internal set; }
 

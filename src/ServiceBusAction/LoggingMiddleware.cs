@@ -8,7 +8,6 @@ namespace ServiceBusAction
     public class LoggingMiddleware
     {
 
-
         public LoggingMiddleware(RequestDelegate next)
         {
             _next = next;           

@@ -1,5 +1,8 @@
-﻿using System;
+﻿using Bb.ComponentModel;
+using Bb.ComponentModel.Attributes;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -7,6 +10,67 @@ namespace Bb.Core.ComponentModel
 {
     public static class ExpressionHelper
     {
+
+        public static Expression SmartConvert(this Expression self, Type targetType)
+        {
+
+            var bindings = BindingFlags.Static | BindingFlags.Public;
+            var argument = self;
+
+            if (argument is ConstantExpression c)
+                argument = Expression.Constant(Convert.ChangeType(c.Value, targetType));
+
+            else
+            {
+
+                var types = new List<Type>() { argument.Type };
+                MethodInfo convertMethod = null;
+
+                if (targetType.IsAssignableFrom(self.Type))
+                    argument = Expression.Convert(self, targetType);
+
+                else
+                {
+
+                    if (convertMethod == null) // try to get implicit or explicit opérator
+                        convertMethod = MethodDiscovery.GetMethods(argument.Type, bindings, targetType, types).FirstOrDefault();
+
+                    if (convertMethod == null) // try in convert static methods
+                        convertMethod = MethodDiscovery.GetMethods(typeof(Convert), bindings, targetType, types).FirstOrDefault();
+
+                    if (convertMethod == null) // try in custom class
+                    {
+
+                        var _types = TypeDiscovery.Instance.GetTypesWithAttributes<ExposeClassAttribute>((attr) => attr.Context == Constants.Cast).ToList();
+                            //.Where(c1 => c1.GetCustomAttributes(typeof(ExposeClassAttribute), false).Cast<ExposeClassAttribute>().First().Context == Constants.Cast)
+                            //.ToList();
+
+                        foreach (var item in _types)
+                            if ((convertMethod = MethodDiscovery.GetMethods(item, bindings, targetType, types).FirstOrDefault()) != null)
+                                break;
+
+                    }
+
+                    if (convertMethod != null)
+                        argument = Expression.Call(convertMethod, argument);
+
+                    else
+                    {
+
+                        if (System.Diagnostics.Debugger.IsAttached)
+                            System.Diagnostics.Debugger.Break();
+
+                        throw new InvalidCastException($"no adapted method cast found for {argument.Type.Name} -> {targetType.Name}. Please considere use a static class tagged [ExposeClass(Context =Constants.Cast)] with a specialized method to convert.");
+
+                    }
+
+                }
+
+            }
+
+            return argument;
+
+        }
 
 
         /// <summary>
@@ -45,7 +109,7 @@ namespace Bb.Core.ComponentModel
                 var cc = Expression.Constant(n);
 
                 Expression c1 = parameter.ParameterType == typeof(object)
-                    ? (Expression)Expression.Call(arg, methodThis, cc)
+                    ? Expression.Call(arg, methodThis, cc)
                     : (Expression)Expression.Convert(Expression.Call(arg, methodThis, cc), parameter.ParameterType);
 
                 if (parameter.IsOptional)

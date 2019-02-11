@@ -15,8 +15,11 @@ namespace Bb.Core.ComponentModel
     public static class DictionnarySerializerExtension
     {
 
+        static DictionnarySerializerExtension()
+        {
+            _dic = new Dictionary<Type, Func<object, Dictionary<string, object>>>();
+        }
 
-        
         /// <summary>
         /// format the serialization of the specified object
         /// </summary>
@@ -24,17 +27,79 @@ namespace Bb.Core.ComponentModel
         /// <param name="source">object sour to serialized</param>
         /// <param name="format">output format</param>
         /// <returns>string of the format with the source propertie's serialized</returns>
-        public static void SerializeObject(this Dictionary<string, object> self, StringBuilder stringBuilder, bool ignoreCase = true)
+        public static void SerializeObjectToJson(this Dictionary<string, object> self, StringBuilder stringBuilder, bool ignoreCase = true)
         {
-            
+
+            stringBuilder.Append("{ ");
+
             foreach (var item in self)
             {
+                stringBuilder.Append("\"");
                 stringBuilder.Append(item.Key);
-                stringBuilder.Append("=");
-                stringBuilder.Append(item.Value.ToString());
-                stringBuilder.Append(";");
+                stringBuilder.Append("\"");
+                stringBuilder.Append(":");
+
+                if (item.Value == null)
+                    stringBuilder.Append("null");
+
+                else if (item.Value.GetType().IsValueType)
+                {
+                    stringBuilder.Append("\"");
+                    stringBuilder.Append(item.Value.ToString());
+                    stringBuilder.Append("\"");
+                }
+                else if (item.Value is Exception e)
+                    SerializeException(stringBuilder, e);
+
+                else
+                {
+                    GetDictionnaryProperties(item.Value, ignoreCase)
+                        .SerializeObjectToJson(stringBuilder, ignoreCase);
+                }
+                stringBuilder.Append(", ");
             }
 
+            stringBuilder.Remove(stringBuilder.Length - 2, 2);
+
+            stringBuilder.Append("}");
+
+        }
+
+        private static void SerializeException(StringBuilder stringBuilder, Exception e)
+        {
+
+            stringBuilder.Append("{");
+
+            if (e.Data.Count > 0)
+            {
+                stringBuilder.Append("\"Data\":");
+                stringBuilder.Append("{");
+                foreach (var key in e.Data.Keys)
+                {
+                    stringBuilder.Append("\"");
+                    stringBuilder.Append(key);
+                    stringBuilder.Append("\"");
+                    stringBuilder.Append(":");
+                    stringBuilder.Append("\"");
+                    stringBuilder.Append(e.Data[key].ToString());
+                    stringBuilder.Append("\"");
+                    stringBuilder.Append(", ");
+                }
+                stringBuilder.Remove(stringBuilder.Length - 2, 2);
+                stringBuilder.Append("}, ");
+            }
+
+            stringBuilder.Append($", \"Message\":\"{e.Message}\"");
+            stringBuilder.Append($",\"StackTrace\":\"{e.StackTrace.ToString()}\"");
+            stringBuilder.Append($",\"Source\":\"{e.Source.ToString()}\"");
+
+            if (e.InnerException != null)
+            {
+                stringBuilder.Append(",\"InnerException\":");
+                SerializeException(stringBuilder, e.InnerException);
+            }
+
+            stringBuilder.Append("}");
         }
 
         /// <summary>
@@ -44,18 +109,14 @@ namespace Bb.Core.ComponentModel
         /// <param name="source">object sour to serialized</param>
         /// <param name="format">output format</param>
         /// <returns>string of the format with the source propertie's serialized</returns>
-        public static Dictionary<string, object> GetDictionnaryProperties<T>(this T source, bool ignoreCase = true)
+        public static Dictionary<string, object> GetDictionnaryProperties(this object source, bool ignoreCase = true)
         {
-
             System.Diagnostics.Contracts.Contract.Requires(!object.Equals(source, null), "null reference exception 'source'");
-
-            Type type = typeof(T).IsInterface
-                    ? typeof(T)
-                    : source.GetType();
-
-            return GetPropertiesMethod<T>(type, ignoreCase)(source);
-
+            return GetPropertiesMethod(source.GetType(), ignoreCase)(source);
         }
+
+
+        #region private
 
         #region Compile object serialization
 
@@ -66,25 +127,18 @@ namespace Bb.Core.ComponentModel
         /// <param name="type"></param>
         /// <param name="format"></param>
         /// <returns></returns>
-        private static Func<T, Dictionary<string, object>> GetPropertiesMethod<T>(Type type, bool ignoreCase)
+        private static Func<object, Dictionary<string, object>> GetPropertiesMethod(Type type, bool ignoreCase)
         {
 
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
 
-            Func<T, Dictionary<string, object>> result = null;
+            if (_dic.TryGetValue(type, out Func<object, Dictionary<string, object>> k))
+                lock (_lock)
+                    if (_dic.TryGetValue(type, out k))
+                        _dic.Add(type, (k = CompileObject(type, ignoreCase)));
 
-            if (Storage<T>.Get != null)
-                result = Storage<T>.Get;
-
-            else
-                lock (Storage<T>._lock)
-                    if (Storage<T>.Get != null)
-                        result = Storage<T>.Get;
-                    else
-                        Storage<T>.Get = result = CompileObject<T>(type, ignoreCase);
-
-            return result;
+            return k;
 
         }
 
@@ -95,7 +149,7 @@ namespace Bb.Core.ComponentModel
         /// <param name="typeSource"></param>
         /// <param name="format"></param>
         /// <returns></returns>
-        private static Func<T, Dictionary<string, object>> CompileObject<T>(Type typeSource, bool ignoreCase)
+        private static Func<object, Dictionary<string, object>> CompileObject(Type typeSource, bool ignoreCase)
         {
 
             Type containerType = typeof(Dictionary<string, object>);
@@ -103,15 +157,17 @@ namespace Bb.Core.ComponentModel
             var _properties = typeSource.GetAllProperties().Where(c => c.CanRead);
             var properties = new HashSet<string>();
             var m = containerType.GetNamedMethod("Add", typeof(string), typeof(object));
-           
+
+            var p1 = Expression.Parameter(typeof(object), "p1");
             // variables
-            var parameter = Expression.Parameter(typeSource, "arg1");
+            var var1 = Expression.Variable(typeSource, "arg1");
             var dic = Expression.Variable(containerType, "dic");
 
             var lst = new List<Expression>()
             {
                 // var dic = new Dictionary<string, object>();
                 dic.CreateObject(),
+                var1.SettedBy(p1.As(var1.Type)),
 
             };
 
@@ -125,7 +181,7 @@ namespace Bb.Core.ComponentModel
                 if (properties.Add(item.Name))
                 {
                     var p = item.PropertyType;
-                    var m1 = parameter.Member(item);
+                    var m1 = var1.Member(item);
                     if (p == typeof(object))
                         lst.Add(dic.Invoke(m, Expression.Constant(n), m1));
                     else
@@ -137,7 +193,7 @@ namespace Bb.Core.ComponentModel
 
             // Create func
             BlockExpression block = Expression.Block(containerType, new ParameterExpression[] { dic }, lst);
-            var lbd = Expression.Lambda<Func<T, Dictionary<string, object>>>(block, parameter);
+            var lbd = Expression.Lambda<Func<object, Dictionary<string, object>>>(block, var1);
 
             return lbd.Compile();
 
@@ -145,14 +201,8 @@ namespace Bb.Core.ComponentModel
 
         #endregion Compile object serialization
 
-        #region private
-
-
-        private class Storage<T>
-        {
-            public static Func<T, Dictionary<string, object>> Get { get; set; }
-            public static volatile object _lock = new object();
-        }
+        public static Dictionary<Type, Func<object, Dictionary<string, object>>> _dic { get; set; }
+        public static volatile object _lock = new object();
 
         #endregion private
 
