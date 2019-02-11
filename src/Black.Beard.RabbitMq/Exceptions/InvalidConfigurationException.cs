@@ -3,7 +3,7 @@ using System;
 namespace Bb.Exceptions
 {
     [System.Serializable]
-    public class InvalidConfigurationException : Colis21Exception
+    public class InvalidConfigurationException : BrokerException
     {
         public InvalidConfigurationException() : base() { }
         public InvalidConfigurationException(string message) : base(message) { }

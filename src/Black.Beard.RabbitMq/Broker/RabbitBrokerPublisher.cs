@@ -1,5 +1,6 @@
 ﻿using Bb.Configuration;
 using Bb.Contracts;
+using Bb.Exceptions;
 using Newtonsoft.Json;
 using RabbitMQ.Client;
 using System;

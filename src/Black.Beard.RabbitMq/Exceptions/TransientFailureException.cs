@@ -3,7 +3,7 @@
 namespace Bb.Exceptions
 {
     [System.Serializable]
-    public class TransientFailureException : Colis21Exception
+    public class TransientFailureException : BrokerException
     {
         public TransientFailureException() : base() { }
 
