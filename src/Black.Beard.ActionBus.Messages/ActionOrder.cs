@@ -33,6 +33,10 @@ namespace Bb.ActionBus
             return stringMessage;
         }
 
+        public static ActionOrder Unserialize(string message)
+        {
+            return JsonConvert.DeserializeObject<ActionOrder>(message, _jsonSerializationSettings);
+        }
         
         private static readonly JsonSerializerSettings _jsonSerializationSettings = new JsonSerializerSettings
         {

@@ -16,21 +16,12 @@ namespace Bb.ActionBus
     public class ActionRepositories // : IDisposable 
     {
 
-        public ActionRepositories(IConfiguration configuration, IServiceCollection services, EventHandler<ActionOrderEventArgs> acknowledgeQueue, EventHandler<ActionOrderEventArgs> deadQueue, int countInstance)
+        public ActionRepositories(IConfiguration configuration, IServiceCollection services, int countInstance)
         {
-
             _countInstance = countInstance;
             _services = services;
-
-            if (acknowledgeQueue != null)
-                AcknowledgeQueue += acknowledgeQueue;
-
-            if (deadQueue != null)
-                DeadQueue += deadQueue;
-
             _configuration = configuration;
             _dic = new Dictionary<string, ActionModel>();
-
         }
 
         public ActionRepositories Register(Type type)
@@ -73,8 +64,6 @@ namespace Bb.ActionBus
             {
                 sp.Start();
                 order.Result = action.Execute(_arg.ToArray());
-                sp.Stop();
-                Trace.WriteLine(new { Key = "Action", action.Name, ElapsedTime = sp.Elapsed }, Constants.PerfMon);
                 ok = true;
             }
             catch (Exception e)
@@ -83,24 +72,9 @@ namespace Bb.ActionBus
             }
             finally
             {
+                sp.Stop();
                 string key = string.Empty;
-                if (order.Result is Exception)
-                {
-                    key = "Deadqueue";
-                    sp.Restart();
-                    DeadQueue?.Invoke(this, new ActionOrderEventArgs(order, _services, tentatives));
-                    sp.Stop();
-                }
-                else
-                {
-                    key = "Acquittement";
-                    sp.Restart();
-                    AcknowledgeQueue?.Invoke(this, new ActionOrderEventArgs(order, _services, tentatives));
-                    sp.Stop();
-                }
-
                 Trace.WriteLine(new { Key = key, action.Name, ElapsedTime = sp.Elapsed }, Constants.PerfMon);
-
             }
 
             return ok;
@@ -126,9 +100,6 @@ namespace Bb.ActionBus
                 _arg.AddRange(order.Arguments.Select(c => c.Value));
             return _arg;
         }
-
-        private event EventHandler<ActionOrderEventArgs> DeadQueue;
-        private event EventHandler<ActionOrderEventArgs> AcknowledgeQueue;
 
         public IEnumerable<ActionModelDesciptor> GetMethods()
         {

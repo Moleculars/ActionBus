@@ -68,9 +68,10 @@ namespace ServiceBusAction
 
             var brokers = services.RegisterBrokers(Configuration);
             Configuration.RegisterLogToBrokers(brokers);
-            Configuration.RegisterListeners(brokers);
             Configuration.RegisterCustomCode();
-            services.RegisterBusinessActions(Configuration, brokers);
+            var actionRepositories = services.RegisterBusinessActions(Configuration);
+
+            Configuration.RegisterListeners(services, brokers, actionRepositories);
 
         }
 

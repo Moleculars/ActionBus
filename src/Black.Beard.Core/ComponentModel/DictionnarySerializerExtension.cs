@@ -42,7 +42,7 @@ namespace Bb.Core.ComponentModel
                 if (item.Value == null)
                     stringBuilder.Append("null");
 
-                else if (item.Value.GetType().IsValueType)
+                else if (item.Value.GetType().IsValueType || item.Value is string)
                 {
                     stringBuilder.Append("\"");
                     stringBuilder.Append(item.Value.ToString());
@@ -112,7 +112,14 @@ namespace Bb.Core.ComponentModel
         public static Dictionary<string, object> GetDictionnaryProperties(this object source, bool ignoreCase = true)
         {
             System.Diagnostics.Contracts.Contract.Requires(!object.Equals(source, null), "null reference exception 'source'");
-            return GetPropertiesMethod(source.GetType(), ignoreCase)(source);
+            var function = GetPropertiesMethod(source.GetType(), ignoreCase);
+
+            if (function == null)
+            {
+
+            }
+
+            return function(source);
         }
 
 
@@ -133,9 +140,9 @@ namespace Bb.Core.ComponentModel
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
 
-            if (_dic.TryGetValue(type, out Func<object, Dictionary<string, object>> k))
+            if (!_dic.TryGetValue(type, out Func<object, Dictionary<string, object>> k))
                 lock (_lock)
-                    if (_dic.TryGetValue(type, out k))
+                    if (!_dic.TryGetValue(type, out k))
                         _dic.Add(type, (k = CompileObject(type, ignoreCase)));
 
             return k;
@@ -192,8 +199,8 @@ namespace Bb.Core.ComponentModel
             lst.Add(dic);
 
             // Create func
-            BlockExpression block = Expression.Block(containerType, new ParameterExpression[] { dic }, lst);
-            var lbd = Expression.Lambda<Func<object, Dictionary<string, object>>>(block, var1);
+            BlockExpression block = Expression.Block(containerType, new ParameterExpression[] { dic, var1 }, lst);
+            var lbd = Expression.Lambda<Func<object, Dictionary<string, object>>>(block, p1);
 
             return lbd.Compile();
 

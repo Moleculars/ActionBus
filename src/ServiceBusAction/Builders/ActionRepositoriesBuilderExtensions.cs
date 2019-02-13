@@ -19,22 +19,19 @@ namespace ServiceBusAction.Builders
         /// <summary>
         /// Add a service which will crawl all modules for top level main menu pages.
         /// </summary>
-        public static IServiceCollection RegisterBusinessActions(this IServiceCollection services, IConfiguration configuration, RabbitBrokers brokers)
+        public static ActionRepositories RegisterBusinessActions(this IServiceCollection services, IConfiguration configuration)
         {
-
-            ActionRepositoriesBuilderExtensions._acknowledgeQueue = brokers.CreatePublisher(configuration.GetValue<string>("AcknowledgeQueue"));
-            ActionRepositoriesBuilderExtensions._deadQueue = brokers.CreatePublisher(configuration.GetValue<string>("DeadQueue"));
 
             var types = TypeDiscovery.Instance.GetTypesWithAttributes<ExposeClassAttribute>((attr) => attr.Context == "BusinessAction").ToList();
 
-            var reps = new ActionRepositories(configuration, services, AcknowledgeQueue, DeadQueue, 10);
+            var reps = new ActionRepositories(configuration, services, 10);
 
             foreach (var item in types)
                 reps.Register(item);
 
             services.AddSingleton(reps);
 
-            return services;
+            return reps;
 
         }
 
@@ -118,52 +115,6 @@ namespace ServiceBusAction.Builders
             return folders;
 
         }
-
-        private static void AcknowledgeQueue(object sender, ActionOrderEventArgs e)
-        {
-
-            string Result = string.Empty;
-
-            switch (e.Action.Name)
-            {
-
-                case "business1.PushScan":
-                    Result = ((Guid)e.Action.Result).ToString("B");
-                    break;
-
-                default:
-                    Result.ToString();
-                    break;
-
-            }
-
-            _acknowledgeQueue.Publish(new
-            {
-                e.Action,
-                e.Action.ExecutedAt,                
-                Result
-            });
-
-        }
-
-        private static void DeadQueue(object sender, ActionOrderEventArgs e)
-        {
-
-            var exception = e.Action.Result as Exception;
-
-            _deadQueue.Publish(
-                new
-                {
-                    e.Action,                
-                    e.Action.ExecutedAt,
-                    e.Action.PushedAt,
-                    exception
-                }
-                );
-        }
-
-        private static IBrokerPublisher _acknowledgeQueue;
-        private static IBrokerPublisher _deadQueue;
 
     }
 
