@@ -1,0 +1,18 @@
+# Windows full test environment with one Mongo, one Rabbit and one Colis 21 CLI.
+# All on an internal network.
+
+version: "3"
+services:
+    lapin:
+        image: "rabbitmq:latest"
+        network_mode: host
+        hostname: my-rabbit
+        name: some-rabbit
+        # ports:
+            # - "15672:15672"
+            # - "5672:5672"
+        environment:
+            - MEMORY_AVAILABLE=1GB
+            - DISK_FREE_LIMIT=4GB
+            - ADMIN_USER=guest
+            - ADMIN_PASS=guest

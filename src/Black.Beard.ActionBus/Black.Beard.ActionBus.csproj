@@ -10,6 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Black.Beard.ActionBus.Messages\Black.Beard.ActionBus.Messages.csproj" />
     <ProjectReference Include="..\Black.Beard.Core\Black.Beard.Core.csproj" />
   </ItemGroup>
 

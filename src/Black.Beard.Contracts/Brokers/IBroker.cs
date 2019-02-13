@@ -1,8 +1,7 @@
-﻿using Bb.Configuration;
-using System;
+﻿using System;
 using System.Threading.Tasks;
 
-namespace Bb.Contracts
+namespace Bb.Brokers
 {
     /// <summary>
     /// Entry point to the message broker.
@@ -16,14 +15,14 @@ namespace Bb.Contracts
         /// <param name="subscriptionParameters"></param>
         /// <param name="callback"></param>
         /// <returns></returns>
-        IBrokerSubscription Subscribe(BrokerSubscriptionParameters subscriptionParameters, Func<IBrokerMessage, Task> callback);
+        IBrokerSubscription Subscribe(object subscriptionParameters, Func<IBrokerContext, Task> callback);
 
         /// <summary>
         /// Get a new instance of a publisher on an exchange.
         /// </summary>
         /// <param name="brokerPublishParameters"></param>
         /// <returns>A ready to publish publisher</returns>
-        IBrokerPublisher GetPublisher(BrokerPublishParameters brokerPublishParameters);
+        IBrokerPublisher GetPublisher(object brokerPublishParameters);
 
         /// <summary>
         /// Remove all data from broker.

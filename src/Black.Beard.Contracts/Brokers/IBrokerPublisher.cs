@@ -2,13 +2,14 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Bb.Contracts
+namespace Bb.Brokers
 {
     /// <summary>
     /// Base interface for publishing messages on AMQP exchanges.
     /// </summary>
     public interface IBrokerPublisher : IDisposable
     {
+
         void BeginTransaction();
 
         void Commit();
@@ -21,7 +22,7 @@ namespace Bb.Contracts
         /// <param name="routingKey">routing key</param>
         /// <param name="message"></param>
         /// <param name="headers"></param>
-        Task Publish(string routingKey, object message, IDictionary<string, object> headers = null);
+        Task Publish(string routingKey, object message, object headers = null);
 
         /// <summary>
         /// Publish a message on a broker exchange with default routing key.
@@ -29,6 +30,6 @@ namespace Bb.Contracts
         /// <param name="routingKey">routing key</param>
         /// <param name="message"></param>
         /// <param name="headers"></param>
-        Task Publish(object message, IDictionary<string, object> headers = null);
+        Task Publish(object message, object headers = null);
     }
 }

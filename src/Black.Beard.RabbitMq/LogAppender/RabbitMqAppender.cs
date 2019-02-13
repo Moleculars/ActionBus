@@ -1,5 +1,4 @@
-﻿using Bb.Broker;
-using Bb.Contracts;
+﻿using Bb.Brokers;
 using Bb.Core.ComponentModel;
 using Bb.Helpers;
 using System;
@@ -16,11 +15,18 @@ namespace Bb.LogAppender
     /// </summary>
     public class RabbitMqAppender : TraceListener
     {
-        
-        public RabbitMqAppender(RabbitBrokers self, string arguments)
+
+        public static RabbitMqAppender Initialize(RabbitBrokers self, string arguments)
+        {
+            var logger = new RabbitMqAppender(self, arguments);
+            System.Diagnostics.Trace.Listeners.Add(logger);
+            return logger;
+        }
+
+        private RabbitMqAppender(RabbitBrokers self, string arguments)
         {
             ConnectionStringHelper.Map(this, arguments);
-            _publisher = self.CreatePublisher(this.BrokerServerName, BrokerPublisherName);
+            _publisher = self.CreatePublisher(PublisherName);
             _timer = new Timer(AppendAsync, null, AppendLogsIntervalSeconds * 1000, AppendLogsIntervalSeconds * 1000);
         }
 
@@ -31,10 +37,9 @@ namespace Bb.LogAppender
         public int AppendLogsIntervalSeconds { get; set; } = 2;
 
         [Required]
-        public string BrokerServerName { get; set; }
+        public string PublisherName { get; set; }
 
-        [Required]
-        public string BrokerPublisherName { get; set; }
+        public HashSet<string> Tracks { get; set; }
 
         #region Dispose
 
@@ -155,26 +160,28 @@ namespace Bb.LogAppender
         private void AppendAsync(object state = null)
         {
 
-            while (_bufferQueue.Count > 0)
+            while (!inTreatment && _bufferQueue.Count > 0)
                 PushOutAsynch();
 
-            Console.WriteLine($"stoped push log {Name}");
+            //Console.WriteLine($"stoped push log {Name}");
 
         }
 
         private void PushOutAsynch()
         {
 
-            try
+            lock (_lock) // general lock - only one thread reads the queue and sends messages at a time.
             {
-                Console.WriteLine($"Starting push log {Name}");
-                var logList = new List<string>(_bufferQueue.Count + 10);
-                var queue = (_publisher as RabbitBrokerPublisher).BrokerPublishParameters.DefaultRoutingKey;
-
-                if (_bufferQueue.Count > 0)
+                inTreatment = true;
+                try
                 {
+                    Console.WriteLine($"Starting push log {Name}");
+                    var logList = new List<string>(_bufferQueue.Count + 10);
+                    var queue = (_publisher as RabbitBrokerPublisher).BrokerPublishParameters.DefaultQueue;
 
-                    lock (_publisher) // general lock - only one thread reads the queue and sends messages at a time.
+                    if (_bufferQueue.Count > 0)
+                    {
+
                         try
                         {
 
@@ -205,12 +212,13 @@ namespace Bb.LogAppender
                                 // Do nothing.
                             }
                         }
+                    }
+
                 }
-
-            }
-            finally
-            {
-
+                finally
+                {
+                    inTreatment = false;
+                }
             }
 
         }
@@ -232,6 +240,7 @@ namespace Bb.LogAppender
         /// Timer to execute the async appending of logs
         /// </summary>
         private readonly Timer _timer;
-
+        private readonly object _lock = new object();
+        private bool inTreatment = false;
     }
 }

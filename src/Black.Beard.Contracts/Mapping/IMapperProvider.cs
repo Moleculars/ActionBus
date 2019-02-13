@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Bb.Mappings.Models
+namespace Bb.Mapping
 {
     public interface IMapperProvider
     {

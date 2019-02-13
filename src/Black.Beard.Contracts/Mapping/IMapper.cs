@@ -1,11 +1,10 @@
 ﻿using System;
 
-namespace Bb
+namespace Bb.Mapping
 {
 
     public interface IMapper
     {
-
 
         Type Source { get; }
 

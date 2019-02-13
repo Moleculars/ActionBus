@@ -16,14 +16,14 @@ namespace Bb.ActionBus
     public class ActionRepositories // : IDisposable 
     {
 
-        public ActionRepositories(IConfiguration configuration, IServiceCollection services, EventHandler<ActionOrderEventArgs> acquitmentQueue, EventHandler<ActionOrderEventArgs> deadQueue, int countInstance)
+        public ActionRepositories(IConfiguration configuration, IServiceCollection services, EventHandler<ActionOrderEventArgs> acknowledgeQueue, EventHandler<ActionOrderEventArgs> deadQueue, int countInstance)
         {
 
             _countInstance = countInstance;
             _services = services;
 
-            if (acquitmentQueue != null)
-                AcquitmentQueue += acquitmentQueue;
+            if (acknowledgeQueue != null)
+                AcknowledgeQueue += acknowledgeQueue;
 
             if (deadQueue != null)
                 DeadQueue += deadQueue;
@@ -95,7 +95,7 @@ namespace Bb.ActionBus
                 {
                     key = "Acquittement";
                     sp.Restart();
-                    AcquitmentQueue?.Invoke(this, new ActionOrderEventArgs(order, _services, tentatives));
+                    AcknowledgeQueue?.Invoke(this, new ActionOrderEventArgs(order, _services, tentatives));
                     sp.Stop();
                 }
 
@@ -128,7 +128,7 @@ namespace Bb.ActionBus
         }
 
         private event EventHandler<ActionOrderEventArgs> DeadQueue;
-        private event EventHandler<ActionOrderEventArgs> AcquitmentQueue;
+        private event EventHandler<ActionOrderEventArgs> AcknowledgeQueue;
 
         public IEnumerable<ActionModelDesciptor> GetMethods()
         {

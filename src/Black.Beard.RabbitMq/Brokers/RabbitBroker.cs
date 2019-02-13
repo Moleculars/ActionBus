@@ -1,5 +1,4 @@
 ﻿using Bb.Configuration;
-using Bb.Contracts;
 using Bb.Exceptions;
 using EasyNetQ.Management.Client;
 using RabbitMQ.Client;
@@ -12,7 +11,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Bb.Broker
+namespace Bb.Brokers
 {
 
     /// <summary>
@@ -39,29 +38,34 @@ namespace Bb.Broker
             return _connection.CreateModel();
         }
 
+        private Uri GetEndpoint()
+        {
+            // Sessions (i.e. channels, i.e. IModel) are created from the connexion, but are not thread safe.
+            var endPoint = Configuration.Hostname.LocalhostHandling();
+            Uri uri = new Uri($"amqp://{endPoint}:{Configuration.Port}");
+            return uri;
+        }
+
         private void Init()
         {
 
             if (_connection == null)
                 lock (this)
-                    if (_connection == null)
+                    if (_connection == null)    // Create the connection
                     {
-
-                        // Create the connection. 
-                        // Sessions (i.e. channels, i.e. IModel) are created from the connexion, but are not thread safe.
-                        var connectionString = Configuration.ConnexionString.LocalhostHandlingRabbit();
-
+ 
                         var rabbitMqFactory = new ConnectionFactory()
                         {
-                            Uri = new Uri(connectionString),
+                            Uri = GetEndpoint(),
                             UserName = Configuration.UserName,
                             Password = Configuration.Password,
                             AutomaticRecoveryEnabled = true,
                             NetworkRecoveryInterval = TimeSpan.FromSeconds(5),
                             RequestedHeartbeat = 5,
                             RequestedConnectionTimeout = 20000,
-                            ContinuationTimeout = TimeSpan.FromSeconds(60)
+                            ContinuationTimeout = TimeSpan.FromSeconds(60),
                         };
+
                         _connection = CreateConnectionWithTimeout(rabbitMqFactory);
 
                         // Test connection
@@ -70,27 +74,45 @@ namespace Bb.Broker
                             // Nothing to do.
                         }
 
-                        // Management
-                        if (Configuration.ConfigAllowed && Configuration.ManagementPort.HasValue)
-                        {
-                            _managementClient = new ManagementClient($"http://{connectionString.Replace("amqp://", "").Split(':')[0]}", Configuration.UserName, Configuration.Password, Configuration.ManagementPort.Value);
-                        }
                     }
+
+        }
+
+        private ManagementClient Manager()
+        {
+
+            if (Configuration.ConfigAllowed && Configuration.ManagementPort.HasValue)
+            {
+                try
+                {
+                    _managmentClient = new ManagementClient(_connection.Endpoint.HostName, Configuration.UserName, Configuration.Password, Configuration.ManagementPort.Value);
+                }
+                catch (Exception e)
+                {
+                    Trace.WriteLine(new { Message = "Failed to create _managment client", Exception = e }, TraceLevel.Error.ToString());
+                    throw;
+                }
+
+            }
+
+            return _managmentClient;
 
         }
 
         public async Task Reset()
         {
+
             Init();
-            if (_managementClient == null)
-            {
+
+            var manager = Manager();
+
+            if (manager == null)
                 throw new IllegalStateException("cannot purge RabbitMQ broker without a management connection");
-            }
 
-            await Task.WhenAll((await _managementClient.GetQueuesAsync()).Select(q => _managementClient.PurgeAsync(q)));
-            await Task.WhenAll((await _managementClient.GetBindingsAsync()).Where(q => q.DestinationType == "queue" && !string.IsNullOrEmpty(q.RoutingKey) && !string.IsNullOrEmpty(q.Source)).Select(q => _managementClient.DeleteBindingAsync(q)));
+            await Task.WhenAll((await manager.GetQueuesAsync()).Select(q => manager.PurgeAsync(q)));
+            await Task.WhenAll((await manager.GetBindingsAsync()).Where(q => q.DestinationType == "queue" && !string.IsNullOrEmpty(q.RoutingKey) && !string.IsNullOrEmpty(q.Source)).Select(q => manager.DeleteBindingAsync(q)));
+
         }
-
 
         private IConnection CreateConnectionWithTimeout(ConnectionFactory rabbitMqFactory)
         {
@@ -111,9 +133,13 @@ namespace Bb.Broker
                     {
                         if (Configuration.UseLogger)
                             Trace.WriteLine(new { Message = $"Could not connect to RabbitMQ broker. Will retry in {Configuration.ConnectionRetryIntervalSeconds} seconds.", Exception = e }, TraceLevel.Error.ToString());
+
+                        // sniff
                         Thread.Sleep(1000 * Configuration.ConnectionRetryIntervalSeconds);
+
                     }
                 }
+
                 if (connection == null)
                 {
                     if (Configuration.UseLogger)
@@ -121,8 +147,9 @@ namespace Bb.Broker
                     else
                         Console.WriteLine("Giving up on opening a connection to the RabbitMQ broker");
 
-                    throw new TransientFailureException($"Cannot reach broker on {Configuration.ConnexionString.LocalhostHandlingRabbit()}");
+                    throw new TransientFailureException($"Cannot reach broker on {GetEndpoint().ToString()}");
                 }
+
                 if (Configuration.UseLogger)
                     Trace.WriteLine("Successfully connected to RabbitMQ", TraceLevel.Info.ToString());
 
@@ -134,16 +161,20 @@ namespace Bb.Broker
             }
         }
 
-        public IBrokerSubscription Subscribe(BrokerSubscriptionParameters subscriptionParameters, Func<IBrokerMessage, Task> callback)
+        public IBrokerSubscription Subscribe(object subscriptionParameters, Func<IBrokerContext, Task> callback)
         {
+
+            BrokerSubscriptionParameters _subscriptionParameters = (subscriptionParameters as BrokerSubscriptionParameters) ?? throw new InvalidConfigurationException("subscriptionParameters must be of type BrokerSubscriptionParameters");
+
             var res = new RabbitBrokerSubscription();
-            res.Subscribe(this, subscriptionParameters, callback);
+            res.Subscribe(this, _subscriptionParameters, callback);
             return res;
         }
 
-        public IBrokerPublisher GetPublisher(BrokerPublishParameters brokerPublishParameters)
+        public IBrokerPublisher GetPublisher(object brokerPublishParameters)
         {
-            return new RabbitBrokerPublisher(this, brokerPublishParameters);
+            BrokerPublishParameters _brokerPublishParameters = brokerPublishParameters as BrokerPublishParameters ?? throw new InvalidConfigurationException("brokerPublishParameters must be of type BrokerPublishParameters");
+            return new RabbitBrokerPublisher(this, _brokerPublishParameters);
         }
 
         public void Dispose()
@@ -223,7 +254,7 @@ namespace Bb.Broker
         }
 
         private IConnection _connection;
-        private ManagementClient _managementClient;
+        private ManagementClient _managmentClient;
 
     }
 
@@ -270,38 +301,15 @@ namespace Bb.Broker
 
     }
 
-    public static class ConnectionHelper
+    internal static class ConnectionHelper
     {
-        public static string LocalhostHandlingMongo(this string s)
+
+        public static string LocalhostHandling(this string s)
         {
-            if (s.Split(':')[0] == "localhost")
-            {
-                var port = s.Split(':').Length == 2 ? s.Split(':')[1] : "27017?appName=colis21";
-                return "mongodb://" + GetDefaultLocalIp() + ":" + port;
-            }
+            if (s.ToLower() == "localhost")
+                return GetDefaultLocalIp();
             return s;
         }
-
-        public static string LocalhostHandlingRabbit(this string s)
-        {
-            if (s.Split(':')[0] == "localhost")
-            {
-                var port = s.Split(':').Length == 2 ? s.Split(':')[1] : "5672";
-                return "amqp://" + GetDefaultLocalIp() + ":" + port;
-            }
-            return s;
-        }
-
-        public static string LocalhostHandlingElasticSearch(this string s)
-        {
-            if (s.Split(':')[0] == "localhost")
-            {
-                var port = s.Split(':').Length == 2 ? s.Split(':')[1] : "9200";
-                return "http://" + GetDefaultLocalIp() + ":" + port;
-            }
-            return s;
-        }
-
 
         /// <summary>
         /// Select the IP of the first non-loopback interface with a valid IPv4 gateway.

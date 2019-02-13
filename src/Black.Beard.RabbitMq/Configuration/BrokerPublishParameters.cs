@@ -1,5 +1,6 @@
 ﻿using Bb.Helpers;
 using Bb.RabbitMq;
+using System.ComponentModel;
 
 namespace Bb.Configuration
 {
@@ -11,25 +12,24 @@ namespace Bb.Configuration
 
         public BrokerPublishParameters(string connectionString)
         {
-            ConnectionStringHelper.Map<BrokerPublishParameters>(this, connectionString);
+            if (!ConnectionStringHelper.Map(this, connectionString))
+            {
+
+            }
         }
 
         /// <summary>
         /// Whether the messages published will be persistent between reboots or not.
         /// </summary>
+        [Description("Whether the messages published will be persistent between reboots or not.")]
         public DeliveryMode DeliveryMode { get; set; } = DeliveryMode.Persistent;
-
-        /// <summary>
-        /// Set to true to have the broker automatically serialize the messages to JSON.
-        /// If false, the message will be be sent as-is.
-        /// </summary>
-        public bool JsonConversion { get; set; } = true;
 
         /// <summary>
         /// If no routing key is specified at publish time, use this one. Can be null.
         /// Especially useful for default exchange publishers aimed at a specific queue.
         /// </summary>
-        public string DefaultRoutingKey { get; set; } = null;
+        [Description("If no queue name is specified at publish time, use this one. Can be null. Especially useful for default exchange publishers aimed at a specific queue.")]
+        public string DefaultQueue { get; set; } = null;
 
     }
 
