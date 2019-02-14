@@ -68,8 +68,11 @@ namespace ServiceBusAction
             var brokers = services.RegisterBrokers(Configuration);
             Configuration.RegisterLogToBrokers(brokers);
             Configuration.RegisterCustomCode();
-            var actionRepositories = services.RegisterBusinessActions(Configuration);
-            Configuration.RegisterListeners(services, brokers, actionRepositories);
+
+            services.CreateActionRepositories();
+
+
+            Configuration.CreateSubscriptionInstances(services, brokers);
 
             //services.BuildServiceProvider()
 
@@ -79,7 +82,9 @@ namespace ServiceBusAction
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
 
-            var actionRepositories = app.ApplicationServices.GetService(typeof(Bb.ActionBus.ActionRepositories));
+            app.ApplicationServices
+                .RegisterBusinessActions()
+                .RegisterListeners();
 
             if (env.IsDevelopment())
             {

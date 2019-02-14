@@ -6,10 +6,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.App" Version="2.1.1" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Black.Beard.ActionBus.Messages\Black.Beard.ActionBus.Messages.csproj" />
     <ProjectReference Include="..\Black.Beard.Core\Black.Beard.Core.csproj" />
   </ItemGroup>

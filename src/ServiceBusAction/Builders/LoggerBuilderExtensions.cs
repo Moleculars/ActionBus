@@ -13,7 +13,7 @@ namespace ServiceBusAction.Builders
     public static class LoggerBuilderExtensions
     {
 
-        public static void RegisterLogToBrokers(this IConfiguration configuration, RabbitBrokers brokers)
+        public static void RegisterLogToBrokers(this IConfiguration configuration, RabbitFactoryBrokers brokers)
         {
 
             var loggers = Collectkeys(configuration, "Loggers");
@@ -26,10 +26,10 @@ namespace ServiceBusAction.Builders
 
         }
 
-        public static RabbitBrokers RegisterBrokers(this IServiceCollection services, IConfiguration configuration)
+        public static RabbitFactoryBrokers RegisterBrokers(this IServiceCollection services, IConfiguration configuration)
         {
 
-            var broker = new RabbitBrokers();
+            var broker = new RabbitFactoryBrokers();
 
             var servers = Collectkeys(configuration, "Servers");
             if (servers.Count > 0)
@@ -59,7 +59,7 @@ namespace ServiceBusAction.Builders
             else
                 Trace.WriteLine($"sample broker subscriber : {ConnectionStringHelper.GenerateHelp(typeof(BrokerSubscriptionParameters))}");
 
-            services.AddSingleton(broker);
+            services.AddSingleton(typeof(IFactoryBroker), broker);
 
             return broker;
 

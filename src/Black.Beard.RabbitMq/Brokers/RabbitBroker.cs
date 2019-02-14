@@ -53,7 +53,7 @@ namespace Bb.Brokers
                 lock (this)
                     if (_connection == null)    // Create the connection
                     {
- 
+
                         var rabbitMqFactory = new ConnectionFactory()
                         {
                             Uri = GetEndpoint(),
@@ -68,10 +68,21 @@ namespace Bb.Brokers
 
                         _connection = CreateConnectionWithTimeout(rabbitMqFactory);
 
-                        // Test connection
-                        using (var channel = GetChannel())
+                        try
                         {
-                            // Nothing to do.
+                            // Test connection
+                            using (var channel = GetChannel())
+                            {
+                                // Nothing to do.
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Trace.WriteLine(new { Message = e.Message, Exception = e });
+                            if (System.Diagnostics.Debugger.IsAttached)
+                                System.Diagnostics.Debugger.Break();
+
+                            throw;
                         }
 
                     }

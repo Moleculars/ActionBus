@@ -8,7 +8,7 @@ namespace Bb.Brokers
     public class SubscriptionInstances : IDisposable
     {
 
-        public SubscriptionInstances(RabbitBrokers borkers)
+        public SubscriptionInstances(RabbitFactoryBrokers borkers)
         {
             _brokers = borkers;
             _items = new List<SubscriptionInstance>();
@@ -64,7 +64,7 @@ namespace Bb.Brokers
 
         #endregion IDisposable Support
 
-        private readonly RabbitBrokers _brokers;
+        private readonly RabbitFactoryBrokers _brokers;
         private readonly List<SubscriptionInstance> _items;
         private bool disposedValue = false; // Pour détecter les appels redondants
 

@@ -2,7 +2,6 @@
 using Bb.ComponentModel.Attributes;
 using Bb.ComponentModel.Factories;
 using Bb.Core.Pools;
-using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -23,19 +22,19 @@ namespace Bb.ActionBus
         where T : class
     {
 
-        internal ActionRepository(ITypeReferential typeReferential, IConfiguration configuration)
+        internal ActionRepository(ITypeReferential typeReferential, IServiceProvider configuration)
         {
 
             _types = typeReferential;
-            _configuration = configuration;
+            _serviceProvider = configuration;
 
             Factory<T> factory = null;
 
             if (configuration != null)
             {
-                factory = new Factory<T>(typeof(IConfiguration)); // ?? new Factory<T>();
+                factory = new Factory<T>(typeof(IServiceProvider)); // ?? new Factory<T>();
                 if (!factory.IsEmpty)
-                    _ctor = () => factory.Create(_configuration);
+                    _ctor = () => factory.Create(_serviceProvider);
             }
 
             if (factory == null || factory.IsEmpty)
@@ -118,7 +117,7 @@ namespace Bb.ActionBus
         }
 
         private readonly ITypeReferential _types;
-        private readonly IConfiguration _configuration;
+        private readonly IServiceProvider _serviceProvider;
         private readonly Func<T> _ctor;
         private readonly string _rootName;
 

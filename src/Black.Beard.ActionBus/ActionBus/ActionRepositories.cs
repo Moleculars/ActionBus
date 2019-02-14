@@ -1,7 +1,5 @@
 ﻿using Bb.ComponentModel;
 using Bb.Core.Helpers;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,12 +14,15 @@ namespace Bb.ActionBus
     public class ActionRepositories // : IDisposable 
     {
 
-        public ActionRepositories(IConfiguration configuration, IServiceCollection services, int countInstance)
+        public ActionRepositories(int countInstance = 20)
         {
             _countInstance = countInstance;
-            _services = services;
-            _configuration = configuration;
             _dic = new Dictionary<string, ActionModel>();
+        }
+
+        public void Inject(IServiceProvider serviceProvider)
+        {
+            this._serviceProvider = serviceProvider;
         }
 
         public ActionRepositories Register(Type type)
@@ -39,7 +40,7 @@ namespace Bb.ActionBus
 
         public ActionRepositories Register<T>() where T : class
         {
-            var r = new ActionRepository<T>(TypeDiscovery.Instance, _configuration);
+            var r = new ActionRepository<T>(TypeDiscovery.Instance, _serviceProvider);
             r.Initialize(_dic, _countInstance);
             return this;
         }
@@ -107,12 +108,10 @@ namespace Bb.ActionBus
                 yield return item.Value.Sign();
         }
 
-        private readonly IConfiguration _configuration;
+        private IServiceProvider _serviceProvider;
         private readonly Dictionary<string, ActionModel> _dic;
 
         public int _countInstance { get; }
-
-        private readonly IServiceCollection _services;
 
     }
 

@@ -8,6 +8,11 @@ namespace Bb.Configuration
     public class ServerBrokerConfiguration
     {
 
+        public ServerBrokerConfiguration()
+        {
+
+        }
+
         public ServerBrokerConfiguration(string connectionString)
         {
 

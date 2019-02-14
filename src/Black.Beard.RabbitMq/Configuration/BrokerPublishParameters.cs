@@ -10,6 +10,11 @@ namespace Bb.Configuration
     public class BrokerPublishParameters : BrokerParameters
     {
 
+        public BrokerPublishParameters()
+        {
+
+        }
+
         public BrokerPublishParameters(string connectionString)
         {
             if (!ConnectionStringHelper.Map(this, connectionString))

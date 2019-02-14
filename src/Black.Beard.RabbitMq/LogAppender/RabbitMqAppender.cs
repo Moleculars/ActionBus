@@ -16,14 +16,14 @@ namespace Bb.LogAppender
     public class RabbitMqAppender : TraceListener
     {
 
-        public static RabbitMqAppender Initialize(RabbitBrokers self, string arguments)
+        public static RabbitMqAppender Initialize(RabbitFactoryBrokers self, string arguments)
         {
             var logger = new RabbitMqAppender(self, arguments);
             System.Diagnostics.Trace.Listeners.Add(logger);
             return logger;
         }
 
-        private RabbitMqAppender(RabbitBrokers self, string arguments)
+        private RabbitMqAppender(RabbitFactoryBrokers self, string arguments)
         {
             ConnectionStringHelper.Map(this, arguments);
             _publisher = self.CreatePublisher(PublisherName);

@@ -16,22 +16,32 @@ namespace ServiceBusAction.Builders
     public static class ActionRepositoriesBuilderExtensions
     {
 
+                /// <summary>
+        /// Add a service which will crawl all modules for top level main menu pages.
+        /// </summary>
+        public static ActionRepositories CreateActionRepositories(this IServiceCollection services)
+        {
+
+            var reps = new ActionRepositories(10);
+            services.AddSingleton(reps);
+            return reps;
+
+        }
+
         /// <summary>
         /// Add a service which will crawl all modules for top level main menu pages.
         /// </summary>
-        public static ActionRepositories RegisterBusinessActions(this IServiceCollection services, IConfiguration configuration)
+        public static IServiceProvider RegisterBusinessActions(this IServiceProvider serviceProvider)
         {
 
+            var actionRepositories = serviceProvider.GetService(typeof(Bb.ActionBus.ActionRepositories)) as Bb.ActionBus.ActionRepositories;
+            actionRepositories.Inject(serviceProvider);
+
             var types = TypeDiscovery.Instance.GetTypesWithAttributes<ExposeClassAttribute>((attr) => attr.Context == "BusinessAction").ToList();
-
-            var reps = new ActionRepositories(configuration, services, 10);
-
             foreach (var item in types)
-                reps.Register(item);
+                actionRepositories.Register(item);
 
-            services.AddSingleton(reps);
-
-            return reps;
+            return serviceProvider;
 
         }
 

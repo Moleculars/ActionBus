@@ -11,6 +11,11 @@ namespace Bb.Configuration
     public class BrokerSubscriptionParameters : BrokerParameters
     {
 
+        public BrokerSubscriptionParameters()
+        {
+
+        }
+
         public BrokerSubscriptionParameters(string connectionString)
         {
             if (!ConnectionStringHelper.Map(this, connectionString))

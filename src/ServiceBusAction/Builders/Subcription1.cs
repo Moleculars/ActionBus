@@ -9,7 +9,7 @@ namespace ServiceBusAction.Builders
     public class Subcription1 : SubscriptionInstance
     {
 
-        public Subcription1(string name, RabbitBrokers brokers, string subscriberName, ActionRepositories actionRepositories)
+        public Subcription1(string name, IFactoryBroker brokers, string subscriberName, ActionRepositories actionRepositories)
             : base(name)
         {
             _actionRepositories = actionRepositories;

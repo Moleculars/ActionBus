@@ -64,31 +64,8 @@ namespace Bb.Brokers
             _session.ContinuationTimeout = TimeSpan.FromSeconds(60);
             _session.TxSelect();
 
-            this._currentTransaction = new transaction(this);
-
-            return this._currentTransaction;
-
-        }
-
-        private class transaction : ITransaction
-        {
-
-            public transaction(RabbitBrokerPublisher publisher)
-            {
-                this._publisher = publisher;
-            }
-
-            public void Dispose()
-            {
-
-                if (this._publisher._txOpen)
-                    this._publisher.Rollback();
-
-                this._publisher._currentTransaction = null;
-
-            }
-
-            private readonly RabbitBrokerPublisher _publisher;
+            _currentTransaction = new Transaction(this);
+            return _currentTransaction;
 
         }
 
@@ -118,6 +95,27 @@ namespace Bb.Brokers
             _initialized = false;
         }
 
+        private class Transaction : ITransaction
+        {
+
+            public Transaction(RabbitBrokerPublisher publisher)
+            {
+                _publisher = publisher;
+            }
+
+            public void Dispose()
+            {
+
+                if (_publisher._txOpen)
+                    _publisher.Rollback();
+
+                _publisher._currentTransaction = null;
+
+            }
+
+            private readonly RabbitBrokerPublisher _publisher;
+
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Dictionary<string, object> TranslateHeaders(object headers)
@@ -211,7 +209,7 @@ namespace Bb.Brokers
         private IModel _session;
         private bool _initialized = false;
         private bool _txOpen = false;
-        private transaction _currentTransaction;
+        private Transaction _currentTransaction;
         private readonly TimeSpan _defaultContinuationTimeout = TimeSpan.FromSeconds(60);
         private readonly object _lock = new object();
 
