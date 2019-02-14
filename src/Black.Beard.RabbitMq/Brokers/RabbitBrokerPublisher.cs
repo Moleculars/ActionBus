@@ -35,8 +35,11 @@ namespace Bb.Brokers
         /// <returns></returns>
         public Task Publish(object message, object headers = null)
         {
+
+            string _queue = BrokerPublishParameters.DefaultQueue ?? throw new NullReferenceException(nameof(BrokerPublishParameters.DefaultQueue));
+
             var h = TranslateHeaders(headers);
-            return Publish_Impl(null, message, h);
+            return Publish_Impl(_queue, message, h);
         }
 
         /// <summary>
@@ -155,6 +158,9 @@ namespace Bb.Brokers
         private Task Publish_Impl(string queue, object message, Dictionary<string, object> headers = null)
         {
 
+            string _queue = queue ?? throw new NullReferenceException(nameof(queue));
+            string exchangeName = BrokerPublishParameters.ExchangeName ?? string.Empty;
+
             Initialize();
 
             byte[] data = BuildMessage(message);        // Message prep
@@ -166,7 +172,7 @@ namespace Bb.Brokers
                 props.Headers = headers;
 
             _session.ContinuationTimeout = _defaultContinuationTimeout;
-            _session.BasicPublish(BrokerPublishParameters.ExchangeName ?? string.Empty, queue ?? BrokerPublishParameters.DefaultQueue, props, data);
+            _session.BasicPublish(exchangeName, _queue, props, data);
 
             return Task.CompletedTask;
 

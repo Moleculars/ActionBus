@@ -23,10 +23,10 @@ namespace Bb.LogAppender
             return logger;
         }
 
-        private RabbitMqAppender(RabbitFactoryBrokers self, string arguments)
+        private RabbitMqAppender(IFactoryBroker factory, string arguments)
         {
+            _factoryBrocker = factory;
             ConnectionStringHelper.Map(this, arguments);
-            _publisher = self.CreatePublisher(PublisherName);
             _timer = new Timer(AppendAsync, null, AppendLogsIntervalSeconds * 1000, AppendLogsIntervalSeconds * 1000);
         }
 
@@ -131,21 +131,25 @@ namespace Bb.LogAppender
         private void Log(object message, string category)
         {
 
-            if (message is string txt)
-                _bufferQueue.Enqueue($"{{ Message : {message}, Level : {category} }}");
-
-            else
+            if (this.Tracks.Contains(category))
             {
+                if (message is string txt)
+                    _bufferQueue.Enqueue($"{{ Message : {message}, Level : {category} }}");
 
-                var properties = DictionnarySerializerExtension.GetDictionnaryProperties(message, true);
-                properties.Add("Category", category);
+                else
+                {
 
-                var sb = new System.Text.StringBuilder(1000);
+                    var properties = DictionnarySerializerExtension.GetDictionnaryProperties(message, true);
+                    properties.Add("Category", category);
 
-                properties.SerializeObjectToJson(sb, false);
+                    var sb = new System.Text.StringBuilder(1000);
 
-                _bufferQueue.Enqueue(sb.ToString());
+                    properties.SerializeObjectToJson(sb, false);
 
+                    lock (_lock2)   // peu etre locké uniquement si il y a un probleme de puch vers rabbit.
+                        _bufferQueue.Enqueue(sb.ToString());
+
+                }
             }
 
         }
@@ -177,7 +181,6 @@ namespace Bb.LogAppender
                 {
                     Console.WriteLine($"Starting push log {Name}");
                     var logList = new List<string>(_bufferQueue.Count + 10);
-                    var queue = (_publisher as RabbitBrokerPublisher).BrokerPublishParameters.DefaultQueue;
 
                     if (_bufferQueue.Count > 0)
                     {
@@ -193,15 +196,30 @@ namespace Bb.LogAppender
                             }
 
                             if (logList.Count > 0)
-                                _publisher.Publish(routingKey: queue, message: string.Format("[{0}]", string.Join(",", logList)));
-
+                            {
+                                _publisher = _factoryBrocker.CreatePublisher(PublisherName);
+                                _publisher.Publish(message: string.Format("[{0}]", string.Join(",", logList)));
+                            }
                         }
                         catch (Exception e1)
                         {
 
+                            lock (_lock2)
+                            {
+
+                                var queue2 = new ConcurrentQueue<string>();
+                                foreach (var item in logList)
+                                    queue2.Enqueue(item);
+
+                                while (_bufferQueue.TryDequeue(out var log))    
+                                    queue2.Enqueue(log);
+
+                                _bufferQueue = queue2;
+
+                            }
+
                             // In case of error, just give up the backlog and restart logger. Print on stdout (do not use the logger!)
                             Console.WriteLine(e1.ToString());
-                            _bufferQueue = new ConcurrentQueue<string>();
 
                             try
                             {
@@ -241,6 +259,8 @@ namespace Bb.LogAppender
         /// </summary>
         private readonly Timer _timer;
         private readonly object _lock = new object();
+        private readonly object _lock2 = new object();
+        private readonly IFactoryBroker _factoryBrocker;
         private bool inTreatment = false;
     }
 }
