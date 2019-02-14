@@ -5,12 +5,11 @@ using System.Collections.Generic;
 
 namespace ServiceBusAction.Controllers
 {
+
     [Route("api/[controller]")]
     [ApiController]
     public class ActionController : ControllerBase
     {
-
-        private readonly ActionRepositories _repositories;
 
         public ActionController(Bb.ActionBus.ActionRepositories repositories)
         {
@@ -27,21 +26,17 @@ namespace ServiceBusAction.Controllers
 
         // POST api/values
         [HttpPost]
-        public void Post([FromBody] ActionOrder value)
+        public void Post([FromBody] string value)
         {
 
-            int count = 0;
-            var _count = this.Request.Headers["count"].ToArray();
-            if (_count != null && _count.Length > 0)
-            {
-                string c = _count[0];
-                count = int.Parse(c);
-            }
+            var order = ActionOrder.Unserialize(value);
 
-            if (!this._repositories.Execute(value, count))
-                throw (Exception)value.Result;
+            if (!this._repositories.Execute(order))
+                throw (Exception)order.Result;
 
         }
+
+        private readonly ActionRepositories _repositories;
 
     }
 }

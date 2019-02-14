@@ -74,36 +74,64 @@ namespace Bb.Brokers
         /// </summary>
         public void RequeueLast()
         {
-
-            if (Message.BasicProperties.Headers.TryGetValue(_parameters.ReplayHeaderKey, out object o))
-            {
-
-                if (int.TryParse(o.ToString(), out int count))
-                    count++;
-                else
-                    count = 2;
-
-                if (count > _parameters.MaxReplayCount)
-                    throw new MaxReplayException(_parameters.MaxReplayCount, this);
-
-                Message.BasicProperties.Headers[_parameters.ReplayHeaderKey] = count;
-            }
-            else
-                Message.BasicProperties.Headers.Add(_parameters.ReplayHeaderKey, 1);
-
+            IncrementReplay();
             Session.BasicPublish(Message.Exchange, Message.RoutingKey, Message.BasicProperties, Message.Body);
-
             Commit();
 
         }
 
-        /// <summary>
-        /// How many times the message may be requeued before being labeled a poison message. -1 to disable.
-        /// </summary>
-        public int MaxReplayCount => _parameters.MaxReplayCount;
+        ///// <summary>
+        ///// How many times the message may be requeued before being labeled a poison message. -1 to disable.
+        ///// </summary>
+        //public int MaxReplayCount => _parameters.MaxReplayCount;
+
+        ///// <summary>
+        ///// The header used for the poison message mechanism. By default the value is "REPLAY"
+        ///// </summary>
+        //public string ReplayHeaderKey => _parameters.ReplayHeaderKey;
+
+        public bool CanBeRequeued()
+        {
+
+            int count = 0;
+            if (Message.BasicProperties.Headers.TryGetValue(_parameters.ReplayHeaderKey, out object o))
+                if (!int.TryParse(o.ToString(), out count))
+                    count = 1;
+
+            return count < _parameters.MaxReplayCount;
+
+        }
+
+        public int ReplayCount
+        {
+            get
+            {
+                int count = 0;
+                if (Message.BasicProperties.Headers.TryGetValue(_parameters.ReplayHeaderKey, out object o))
+                    if (!int.TryParse(o.ToString(), out count))
+                        count = 1;
+
+                return count;
+            }
+        }
+
+        private void IncrementReplay()
+        {
+
+            var count = ReplayCount;
+            count++;
+
+            if (count > _parameters.MaxReplayCount)
+                throw new MaxReplayException(_parameters.MaxReplayCount, this);
+
+            if (!Message.BasicProperties.Headers.TryAdd(_parameters.ReplayHeaderKey, count))
+                Message.BasicProperties.Headers[_parameters.ReplayHeaderKey] = count;
+
+        }
 
         internal BasicDeliverEventArgs Message { private get; set; }
         internal IModel Session { private get; set; }
+
         private readonly BrokerSubscriptionParameters _parameters;
 
 

@@ -52,7 +52,7 @@ namespace Bb.Brokers
             return Publish_Impl(queue, message, h);
         }
 
-        public void BeginTransaction()
+        public ITransaction BeginTransaction()
         {
 
             Initialize();
@@ -63,6 +63,32 @@ namespace Bb.Brokers
             _txOpen = true;
             _session.ContinuationTimeout = TimeSpan.FromSeconds(60);
             _session.TxSelect();
+
+            this._currentTransaction = new transaction(this);
+
+            return this._currentTransaction;
+
+        }
+
+        private class transaction : ITransaction
+        {
+
+            public transaction(RabbitBrokerPublisher publisher)
+            {
+                this._publisher = publisher;
+            }
+
+            public void Dispose()
+            {
+
+                if (this._publisher._txOpen)
+                    this._publisher.Rollback();
+
+                this._publisher._currentTransaction = null;
+
+            }
+
+            private readonly RabbitBrokerPublisher _publisher;
 
         }
 
@@ -185,6 +211,7 @@ namespace Bb.Brokers
         private IModel _session;
         private bool _initialized = false;
         private bool _txOpen = false;
+        private transaction _currentTransaction;
         private readonly TimeSpan _defaultContinuationTimeout = TimeSpan.FromSeconds(60);
         private readonly object _lock = new object();
 

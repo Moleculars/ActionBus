@@ -4,13 +4,14 @@ using System.Threading.Tasks;
 
 namespace Bb.Brokers
 {
+
     /// <summary>
     /// Base interface for publishing messages on AMQP exchanges.
     /// </summary>
     public interface IBrokerPublisher : IDisposable
     {
 
-        void BeginTransaction();
+        ITransaction BeginTransaction();
 
         void Commit();
 

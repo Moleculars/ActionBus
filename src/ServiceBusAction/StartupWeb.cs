@@ -9,7 +9,6 @@ using Swashbuckle.AspNetCore.Swagger;
 using System;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace ServiceBusAction
 {
@@ -70,14 +69,17 @@ namespace ServiceBusAction
             Configuration.RegisterLogToBrokers(brokers);
             Configuration.RegisterCustomCode();
             var actionRepositories = services.RegisterBusinessActions(Configuration);
-
             Configuration.RegisterListeners(services, brokers, actionRepositories);
+
+            //services.BuildServiceProvider()
 
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
+
+            var actionRepositories = app.ApplicationServices.GetService(typeof(Bb.ActionBus.ActionRepositories));
 
             if (env.IsDevelopment())
             {
@@ -136,6 +138,8 @@ namespace ServiceBusAction
             //    });
 
             //});
+
+
 
         }
 

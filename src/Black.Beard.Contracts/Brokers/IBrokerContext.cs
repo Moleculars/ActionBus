@@ -46,6 +46,12 @@ namespace Bb.Brokers
         void Reject();
 
         /// <summary>
+        /// return true if the current message can be pushed at last of queue
+        /// </summary>
+        /// <returns></returns>
+        bool CanBeRequeued();
+
+        /// <summary>
         /// Will put the message back in the queue, at the start of the queue.
         /// </summary>
         void RequeueLast();

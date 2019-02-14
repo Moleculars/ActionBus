@@ -49,7 +49,7 @@ namespace Bb.ActionBus
         /// </summary>
         /// <param name="order"></param>
         /// <returns></returns>
-        public bool Execute(ActionOrder order, int tentatives)
+        public bool Execute(ActionOrder order)
         {
 
             if (!_dic.TryGetValue(order.Name, out ActionModel action))

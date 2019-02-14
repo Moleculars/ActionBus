@@ -21,11 +21,7 @@ namespace ServiceBusAction.Builders
 
             ActionOrder order = ActionOrder.Unserialize(context.Utf8Data);
 
-            int count = 0;
-            if (context.Headers.TryGetValue("REPLAY", out object valueHeader))
-                count = int.Parse(valueHeader.ToString());
-
-            if (_actionRepositories.Execute(order, count))
+            if (_actionRepositories.Execute(order))
             {
 
                 string Result = string.Empty;
@@ -42,13 +38,14 @@ namespace ServiceBusAction.Builders
 
                 }
 
-                _acknowledgeQueue.Publish(new
-                {
-                    Order = order,
-                    order.ExecutedAt,
-                    Result
-                });
-
+                _acknowledgeQueue.Publish(
+                    new
+                    {
+                        Order = order,
+                        order.ExecutedAt,
+                        Result
+                    }
+                );
 
                 context.Commit();
 
@@ -56,17 +53,26 @@ namespace ServiceBusAction.Builders
             else
             {
 
-                var exception = order.Result as Exception;
+                if (context.CanBeRequeued())
+                    context.RequeueLast();
 
-                _deadQueue.Publish(
-                new
+                else
                 {
-                    Order = order,
-                    order.ExecutedAt,
-                    order.PushedAt,
-                    exception
+
+                    var Exception = order.Result as Exception;
+                    _deadQueue.Publish(
+                        new
+                        {
+                            Order = order,
+                            order.ExecutedAt,
+                            order.PushedAt,
+                            Exception
+                        }
+                    );
+
+                    context.Reject();
+
                 }
-                );
 
             }
 
