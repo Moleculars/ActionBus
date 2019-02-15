@@ -26,10 +26,10 @@ namespace ServiceBusAction.Controllers
 
         // POST api/values
         [HttpPost]
-        public void Post([FromBody] string value)
+        public void Post([FromBody] ActionOrder order)
         {
 
-            var order = ActionOrder.Unserialize(value);
+            //var order = ActionOrder.Unserialize(value);
 
             if (!this._repositories.Execute(order))
                 throw (Exception)order.Result;

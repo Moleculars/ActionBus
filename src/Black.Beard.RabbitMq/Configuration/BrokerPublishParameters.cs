@@ -33,8 +33,8 @@ namespace Bb.Configuration
         /// If no routing key is specified at publish time, use this one. Can be null.
         /// Especially useful for default exchange publishers aimed at a specific queue.
         /// </summary>
-        [Description("If no queue name is specified at publish time, use this one. Can be null. Especially useful for default exchange publishers aimed at a specific queue.")]
-        public string DefaultQueue { get; set; } = null;
+        [Description("If no RountingKey name is specified at publish time, use this one. Can be null. Especially useful for default exchange publishers aimed at a specific queue.")]
+        public string DefaultRountingKey { get; set; } = null;
 
     }
 

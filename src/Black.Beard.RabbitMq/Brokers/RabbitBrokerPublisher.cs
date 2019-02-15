@@ -36,7 +36,7 @@ namespace Bb.Brokers
         public Task Publish(object message, object headers = null)
         {
 
-            string _queue = BrokerPublishParameters.DefaultQueue ?? throw new NullReferenceException(nameof(BrokerPublishParameters.DefaultQueue));
+            string _queue = BrokerPublishParameters.DefaultRountingKey ?? throw new NullReferenceException($"parameter '{nameof(BrokerPublishParameters.DefaultRountingKey)}' is missing or empty");
 
             var h = TranslateHeaders(headers);
             return Publish_Impl(_queue, message, h);
@@ -155,10 +155,10 @@ namespace Bb.Brokers
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Task Publish_Impl(string queue, object message, Dictionary<string, object> headers = null)
+        private Task Publish_Impl(string routingKey, object message, Dictionary<string, object> headers = null)
         {
 
-            string _queue = queue ?? throw new NullReferenceException(nameof(queue));
+            string _queue = routingKey ?? throw new NullReferenceException(nameof(routingKey));
             string exchangeName = BrokerPublishParameters.ExchangeName ?? string.Empty;
 
             Initialize();
@@ -196,9 +196,9 @@ namespace Bb.Brokers
                             if (!string.IsNullOrWhiteSpace(BrokerPublishParameters.ExchangeName))
                                 _session.ExchangeDeclare(BrokerPublishParameters.ExchangeName, BrokerPublishParameters.ExchangeType.ToString().ToLower(), true, false);
 
-                            if (string.IsNullOrWhiteSpace(BrokerPublishParameters.ExchangeName) && !string.IsNullOrWhiteSpace(BrokerPublishParameters.DefaultQueue))
+                            if (string.IsNullOrWhiteSpace(BrokerPublishParameters.ExchangeName) && !string.IsNullOrWhiteSpace(BrokerPublishParameters.DefaultRountingKey))
                                 // Direct exchange, default routing key => direct queue publishing, so create the queue.
-                                _session.QueueDeclare(BrokerPublishParameters.DefaultQueue, true, false, false);
+                                _session.QueueDeclare(BrokerPublishParameters.DefaultRountingKey, true, false, false);
 
                         }
 

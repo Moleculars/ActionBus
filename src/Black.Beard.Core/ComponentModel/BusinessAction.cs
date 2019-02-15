@@ -61,7 +61,7 @@ namespace Bb.ComponentModel
 
             BlockExpression block = Expression.Block(
                 typeof(void),
-                new ParameterExpression[] { exceptionVariable },
+                new ParameterExpression[] { },
                 new Expression[] {
                     Expression.Call(method3, _args3),
                     Expression.Throw(exceptionVariable)
@@ -100,8 +100,12 @@ namespace Bb.ComponentModel
         /// <returns></returns>
         public static void LogError(string ruleName, Exception e, string[] arguments)
         {
-            string message = $"{ruleName}({string.Join(", ", arguments)}) => {e.ToString()}";
-            Trace.WriteLine(message);
+            Trace.WriteLine(new
+            {
+                ActionName = ruleName,
+                Arguments = string.Join(", ", arguments),
+                Exception = e,
+            }, TraceLevel.Error.ToString());
         }
 
         /// <summary>
@@ -115,8 +119,13 @@ namespace Bb.ComponentModel
         public static object LogResult(string ruleName, object result, string[] arguments)
         {
             var r = result;
-            string message = $"{ruleName}({string.Join(", ", arguments)})";
-            Trace.WriteLine(message);
+            Trace.WriteLine(new
+            {
+                ActionName = ruleName,
+                Arguments = string.Join(", ", arguments),
+                Result = result,
+            }, TraceLevel.Info.ToString());
+
             return result;
         }
 
