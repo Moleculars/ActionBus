@@ -4,7 +4,6 @@ using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 
@@ -57,13 +56,28 @@ namespace ServiceBusAction
 
         public static IWebHostBuilder CreateServiceHostBuilder(string[] args)
         {
+
+            string path = @"D:\Src\ActionBus\src\ServiceBusAction\Configurations\";
+            var dir = new DirectoryInfo(path);
+
             return WebHost.CreateDefaultBuilder(args)
                 .ConfigureAppConfiguration((context, config) =>
                 {
-                    config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
-                          .AddJsonFile("appsettings.dev.json", optional: true, reloadOnChange: false)
-                          .AddEnvironmentVariables();
+
+                    var e = context.HostingEnvironment;
+
+                    foreach (var file in dir.GetFiles("*.json"))
+                        config.AddJsonFile(file.FullName, optional: false, reloadOnChange: false);
+
+                    config.AddEnvironmentVariables();
+
+
+                    //config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+                    //      .AddJsonFile("appsettings.developement.json", optional: true, reloadOnChange: false)
+                    //      .AddEnvironmentVariables();
+
                 });
+
         }
 
     }

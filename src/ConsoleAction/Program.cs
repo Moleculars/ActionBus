@@ -10,40 +10,34 @@ namespace ConsoleAction
         private static void Main(string[] args)
         {
 
-            var order = new ActionOrder()
-            {
-                Name = "business1.Action1",
-                PushedAt = DateTimeOffset.Now,
-                Uuid = Guid.NewGuid(),
-                Arguments = new System.Collections.Generic.List<ArgumentOrder>()
-                {
-                    new ArgumentOrder() { Name = "firstIdentifier", Value = "1" },
-                    new ArgumentOrder() { Name = "secondIdentifier", Value = "Test" } }
-            };
 
-            var factory = TypeDiscovery.Initialize();
 
-            var reps = new ActionRepositories(null, null, AcquitmentQueue, DeadQueue, 10)
-                .Register<ClassCustom1>();
 
-            var method = reps.GetMethods();
 
-            if (reps.Execute(order, 0))
-            {
+            //var order = new ActionOrder()
+            //{
+            //    Name = "business1.Action1",
+            //    PushedAt = DateTimeOffset.Now,
+            //    Uuid = Guid.NewGuid(),
+            //    Arguments = new System.Collections.Generic.List<ArgumentOrder>()
+            //    {
+            //        new ArgumentOrder() { Name = "firstIdentifier", Value = "1" },
+            //        new ArgumentOrder() { Name = "secondIdentifier", Value = "Test" } }
+            //};
 
-            }
+            //var factory = TypeDiscovery.Initialize();
 
-            Console.WriteLine("Hello World!");
+            //var reps = new ActionRepositories(10)
+            //    .Register<ClassCustom1>();
 
-        }
+            //var method = reps.GetMethods();
 
-        private static void AcquitmentQueue(object sender, ActionOrderEventArgs e)
-        {
+            //if (reps.Execute(order, 0))
+            //{
 
-        }
+            //}
 
-        private static void DeadQueue(object sender, ActionOrderEventArgs e)
-        {
+            //Console.WriteLine("Hello World!");
 
         }
 

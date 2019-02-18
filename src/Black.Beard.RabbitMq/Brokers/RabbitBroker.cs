@@ -6,8 +6,6 @@ using RabbitMQ.Client.Exceptions;
 using System;
 using System.Diagnostics;
 using System.Linq;
-using System.Net.NetworkInformation;
-using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -50,7 +48,7 @@ namespace Bb.Brokers
         {
 
             if (_connection == null)
-                lock (this)
+                lock (_lock)
                     if (_connection == null)    // Create the connection
                     {
 
@@ -158,7 +156,7 @@ namespace Bb.Brokers
                     else
                         Console.WriteLine("Giving up on opening a connection to the RabbitMQ broker");
 
-                    throw new TransientFailureException($"Cannot reach broker on {GetEndpoint().ToString()}");
+                    throw new ConnectionFailureException($"Cannot reach broker on {GetEndpoint().ToString()}");
                 }
 
                 if (Configuration.UseLogger)
@@ -184,33 +182,23 @@ namespace Bb.Brokers
 
         public IBrokerPublisher GetPublisher(object brokerPublishParameters)
         {
-            BrokerPublishParameters _brokerPublishParameters = brokerPublishParameters as BrokerPublishParameters ?? throw new InvalidConfigurationException("brokerPublishParameters must be of type BrokerPublishParameters");
+
+            BrokerPublishParameters _brokerPublishParameters = brokerPublishParameters as BrokerPublishParameters
+                ?? throw new InvalidConfigurationException("brokerPublishParameters must be of type BrokerPublishParameters");
+
             return new RabbitBrokerPublisher(this, _brokerPublishParameters);
+
         }
 
         public void Dispose()
         {
-            lock (this)
-            {
+            lock (_lock)
                 if (_connection != null)
                 {
                     _connection?.Close();
                     _connection = null;
                 }
-            }
         }
-
-        ///// <summary>
-        ///// Declare a simple queue bound on the default exchange with routing key = queue name.
-        ///// </summary>
-        ///// <param name="queueName"></param>
-        //public void QueueDeclare(string queueName, bool durable = true, bool exclusive = false, bool autoDelete = false)
-        //{
-        //    using (var channel = GetChannel())
-        //    {
-        //        channel.QueueDeclare(queueName, durable, exclusive, autoDelete, null);
-        //    }
-        //}
 
         public Task<int> GetQueueDepth(string queueName)
         {
@@ -233,109 +221,37 @@ namespace Bb.Brokers
         /// </summary>
         public ServerBrokerConfiguration Configuration { get; private set; }
 
-        /// <summary>
-        /// If true, all queues will be purged on startup. Only used in tests.
-        /// </summary>
-        public bool PurgeBrokerOnStartup { get; set; } = false;
+        ///// <summary>
+        ///// If true, all queues will be purged on startup. Only used in tests.
+        ///// </summary>
+        //public bool PurgeBrokerOnStartup { get; set; } = false;
 
-        //public Task<BasicMessage> GetMessageInQueue(string queueName)
+        ///// <summary>
+        ///// Declare a simple queue bound on the default exchange with routing key = queue name.
+        ///// </summary>
+        ///// <param name="queueName"></param>
+        //public void QueueDeclare(string queueName, bool durable = true, bool exclusive = false, bool autoDelete = false)
         //{
-        //    using (var session = GetChannel())
+        //    using (var channel = GetChannel())
         //    {
-        //        var result = session.BasicGet(queueName, true);
-        //        if (result != null)
-        //        {
-        //            var messageId = result.BasicProperties.MessageId;
-        //            var data = System.Text.Encoding.UTF8.GetString(result.Body);
-        //            return Task.FromResult(new BasicMessage { Headers = result.BasicProperties.Headers, Id = messageId, Utf8Data = data });
-        //        }
+        //        channel.QueueDeclare(queueName, durable, exclusive, autoDelete, null);
         //    }
-
-        //    return Task.FromResult<BasicMessage>(null);
         //}
 
-        public void BindTopic(string queueName, string exchangeName)
-        {
-            using (var channel = GetChannel())
-            {
-                channel.QueueDeclare(queueName, true, false, false, null);
-                channel.ExchangeDeclare(exchangeName, "topic", true, false, null);
-                channel.QueueBind(queueName, exchangeName, "*", null);
-            }
-        }
+        //public void BindTopic(string queueName, string exchangeName)
+        //{
+        //    using (var channel = GetChannel())
+        //    {
+        //        channel.QueueDeclare(queueName, true, false, false, null);
+        //        channel.ExchangeDeclare(exchangeName, "topic", true, false, null);
+        //        channel.QueueBind(queueName, exchangeName, "*", null);
+        //    }
+        //}
 
         private IConnection _connection;
         private ManagementClient _managmentClient;
+        private readonly object _lock = new object();
 
     }
-
-    public static class RabbitBrokerEngineBuilderExtensions
-    {
-
-        //public static IModuleHostBuilder UseBrokerRabbit(this IModuleHostBuilder builder, bool purgeOnStartup = false)
-        //{
-
-        //    // INTERNAL
-        //    builder.InternalMessageBroker = new RabbitBroker(builder..BootstrapConfiguration.Rabbit) { PurgeBrokerOnStartup = purgeOnStartup };
-
-        //    // EXTERNAL
-        //    if (builder.BootstrapConfiguration.Modules.TryGetValue("ModuleHost", out var hostConfig) &&
-        //        hostConfig.AdditionalParameters.TryGetValue("rabbitExternalConnectionString", out var cnStr))
-        //    {
-        //        hostConfig.AdditionalParameters.TryGetValue("rabbitExternalUserName", out var username);
-        //        hostConfig.AdditionalParameters.TryGetValue("rabbitExternalPassword", out var password);
-
-        //        var config = new RabbitConfiguration
-        //        {
-        //            ConnexionString = cnStr,
-        //            Password = password,
-        //            UserName = username,
-        //            ManagementPort = null,
-        //            ConfigAllowed = false
-        //            //TODO: check if used. QosPrefetchCount
-        //        };
-
-        //        builder.ExternalMessageBroker = new RabbitBroker(config);
-        //    }
-        //    else
-        //    {
-        //        builder.ExternalMessageBroker = builder.InternalMessageBroker;
-        //    }
-
-        //    return builder;
-        //}
-
-
-        /// <summary>
-        /// The connection to a rabbit broker/network of brokers. Thread safe.
-        /// </summary>
-
-    }
-
-    internal static class ConnectionHelper
-    {
-
-        public static string LocalhostHandling(this string s)
-        {
-            if (s.ToLower() == "localhost")
-                return GetDefaultLocalIp();
-            return s;
-        }
-
-        /// <summary>
-        /// Select the IP of the first non-loopback interface with a valid IPv4 gateway.
-        /// </summary>
-        private static string GetDefaultLocalIp()
-        {
-            return NetworkInterface
-                .GetAllNetworkInterfaces()
-                .Where(n => n.OperationalStatus == OperationalStatus.Up && n.NetworkInterfaceType != NetworkInterfaceType.Loopback && n.GetIPProperties()?.GatewayAddresses?.Count > 0)
-                .SelectMany(i => i.GetIPProperties().UnicastAddresses)
-                .Where(a => a?.Address != null && a.Address.AddressFamily == AddressFamily.InterNetwork)
-                .Select(a => a.Address)
-                .FirstOrDefault()?.ToString() ?? "localhost";
-        }
-    }
-
 
 }

@@ -196,7 +196,7 @@ namespace Bb.Brokers
                             if (!string.IsNullOrWhiteSpace(BrokerPublishParameters.ExchangeName))
                                 _session.ExchangeDeclare(BrokerPublishParameters.ExchangeName, BrokerPublishParameters.ExchangeType.ToString().ToLower(), true, false);
 
-                            if (string.IsNullOrWhiteSpace(BrokerPublishParameters.ExchangeName) && !string.IsNullOrWhiteSpace(BrokerPublishParameters.DefaultRountingKey))
+                            else if (!string.IsNullOrWhiteSpace(BrokerPublishParameters.DefaultRountingKey))
                                 // Direct exchange, default routing key => direct queue publishing, so create the queue.
                                 _session.QueueDeclare(BrokerPublishParameters.DefaultRountingKey, true, false, false);
 

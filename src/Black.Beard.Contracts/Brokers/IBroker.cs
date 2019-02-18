@@ -44,12 +44,12 @@ namespace Bb.Brokers
         ///// <param name="autoDelete"></param>
         //void QueueDeclare(string queueName, bool durable = true, bool exclusive = false, bool autoDelete = false);
 
-        /// <summary>
-        /// Bind a queue to a topic. Used only in tests.
-        /// </summary>
-        /// <param name="queueName"></param>
-        /// <param name="exchangeName"></param>
-        void BindTopic(string queueName, string exchangeName);
+        ///// <summary>
+        ///// Bind a queue to a topic. Used only in tests.
+        ///// </summary>
+        ///// <param name="queueName"></param>
+        ///// <param name="exchangeName"></param>
+        //void BindTopic(string queueName, string exchangeName);
 
     }
 }

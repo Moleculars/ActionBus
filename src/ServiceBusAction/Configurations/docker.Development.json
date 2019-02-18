@@ -1,24 +1,7 @@
 {
 
-
-  "AllowedHosts": "*",
-
-  "useSwagger": "true",
-
-  "Culture": "fr-fr",
-
-  "FormatDateCulture": "u", // https://docs.microsoft.com/fr-fr/dotnet/api/system.datetimeoffset.tostring?view=netframework-4.7.2#System_DateTimeOffset_ToString_System_IFormatProvider_
-
-  "BusinessMethodFolders": [ "D:\\Src\\ActionBus\\src\\MyCustoLib1\\bin\\Debug\\netcoreapp2.1", "..\\MyCustoLib1\\bin\\Debug\\netcoreapp2.1" ],
-
-  "listener": "subscriberAction",
-  "AcknowledgeQueue": "AcknowledgeQueue",
-  "DeadQueue": "DeadQueue",
-  "Parent": "Parent",
-
-  "Servers": [
+    "Servers": [
     "Name=serverLocal;Hostname=localhost;Port=5672;QosPrefetchCount=1;ConnectionTimeoutSeconds=50;ConnectionRetryIntervalSeconds=50;UserName=guest;Password=guest;MaxReplayCount=50;UseLogger=true;ManagementPort=15672;ConfigAllowed=true"
-
   ],
 
   "Publishers": [
@@ -33,11 +16,6 @@
   "Subsribers": [
     "Name=subscriber1;ServerName=serverLocal;StorageQueueName=queue1;Durable=true;MaxParallelism=20;ExchangeName=ExchangeName1;ExchangeType=DIRECT",
     "Name=subscriberAction;ServerName=serverLocal;StorageQueueName=subscriberActionQueue;Durable=true;MaxParallelism=20;ExchangeName=subscriberActionExchangeName;ExchangeType=DIRECT"
-
-  ],
-
-  "Loggers": [
-    "Name=LogRabbit;Tracks=Perfmon;PublisherName=publisherLog;AppendLogsIntervalSeconds=2"
 
   ]
 

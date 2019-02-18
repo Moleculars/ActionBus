@@ -19,18 +19,17 @@ namespace ServiceBusAction
         public StartupWeb(IConfiguration configuration)
         {
             Configuration = configuration;
-            _useSwagger = configuration.GetValue<bool>("useSwagger");
+            _useSwagger = configuration.GetValue<bool>(ServiceConstants.UseSwagger);
         }
 
         public IConfiguration Configuration { get; }
-
-        private readonly bool _useSwagger;
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
 
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            services.AddMvc()
+                .SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
 
             if (_useSwagger)
             {
@@ -39,7 +38,7 @@ namespace ServiceBusAction
                     swagger.DescribeAllEnumsAsStrings();
                     swagger.DescribeAllParametersInCamelCase();
                     swagger.IgnoreObsoleteActions();
-                    swagger.AddSecurityDefinition("key", new Swashbuckle.AspNetCore.Swagger.ApiKeyScheme { Name = "ApiKey" });
+                    swagger.AddSecurityDefinition(ServiceConstants.Key, new Swashbuckle.AspNetCore.Swagger.ApiKeyScheme { Name = ServiceConstants.ApiKey });
 
                     //swagger.TagActionsBy(a => a.ActionDescriptor is Microsoft.AspNetCore.Mvc.Controllers.ControllerActionDescriptor b
                     //    ? b.ControllerTypeInfo.Assembly.FullName.Split('.')[2].Split(',')[0].Replace("Web", "")
@@ -51,14 +50,14 @@ namespace ServiceBusAction
                     //    return a.ActionDescriptor is ControllerActionDescriptor b && b.MethodInfo.GetCustomAttributes<ExternalApiRouteAttribute>().Any();
                     //});
 
-                    swagger.SwaggerDoc("v1", new Swashbuckle.AspNetCore.Swagger.Info
+                    swagger.SwaggerDoc(ServiceConstants.VersionUmber, new Swashbuckle.AspNetCore.Swagger.Info
                     {
-                        Title = "Black Beard Action APIs",
-                        License = new License() { Name = "Only usable with a valid partner contract." },
-                        Version = "1.0.0",
+                        Title = ServiceConstants.Title,
+                        License = new License() { Name = ServiceConstants.LicenceName },
+                        Version = ServiceConstants.Version,
                     });
 
-                    var doc = DocumentationHelpers.ConcateDocumentations("Black.Beard*.xml");
+                    var doc = DocumentationHelpers.ConcateDocumentations(ServiceConstants.AssemblyDocumentations);
                     if (doc != null)
                         swagger.IncludeXmlComments(() => doc);
 
@@ -98,11 +97,14 @@ namespace ServiceBusAction
             app.UseHttpsRedirection();
             app.UseMvc();
 
+            string Namespace = Configuration.GetValue<string>(ServiceConstants.Namespace);
+
             // Load static content from module assemblies
             var staticProviders = AppDomain.CurrentDomain.GetAssemblies().AsParallel()
-               .Where(a => a.FullName.StartsWith("Black.Beard.") && !a.FullName.Contains("Tests,"))
+               .Where(a => a.FullName.StartsWith(Namespace) && !a.FullName.Contains("Tests,"))
                //.Where(a => a.GetTypes().Any(t => t.GetCustomAttributes(typeof(ModuleTopLevelWebPageAttribute)).Any()))
                .Select(a => new EmbeddedFileProvider(a)).ToList<IFileProvider>();
+
             staticProviders.Add(new PhysicalFileProvider(Path.Join(env.ContentRootPath, "wwwroot")));
 
             app.UseMiddleware<LoggingMiddleware>();
@@ -112,7 +114,8 @@ namespace ServiceBusAction
                 app.UseSwagger();
                 app.UseSwaggerUI(c =>
                 {
-                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "My First Swagger Environment");
+                    string p = @"/" + Path.Combine("swagger", ServiceConstants.VersionUmber, "swagger.json").Replace("\\", "/");
+                    c.SwaggerEndpoint(p, ServiceConstants.SawggerName);
                     c.DefaultModelsExpandDepth(0);
                 });
 
@@ -147,6 +150,9 @@ namespace ServiceBusAction
 
 
         }
+
+
+        private readonly bool _useSwagger;
 
     }
 
