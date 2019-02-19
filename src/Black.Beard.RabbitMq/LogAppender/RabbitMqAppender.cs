@@ -131,7 +131,7 @@ namespace Bb.LogAppender
         private void Log(object message, string category)
         {
 
-            if (this.Tracks.Contains(category))
+            if (Tracks.Contains(category))
             {
                 if (message is string txt)
                     _bufferQueue.Enqueue($"{{ Message : {message}, Level : {category} }}");
@@ -177,6 +177,10 @@ namespace Bb.LogAppender
             lock (_lock) // general lock - only one thread reads the queue and sends messages at a time.
             {
                 inTreatment = true;
+
+                if (_publisher == null)
+                    _publisher = _factoryBrocker.CreatePublisher(PublisherName);
+
                 try
                 {
                     Console.WriteLine($"Starting push log {Name}");
@@ -196,10 +200,8 @@ namespace Bb.LogAppender
                             }
 
                             if (logList.Count > 0)
-                            {
-                                _publisher = _factoryBrocker.CreatePublisher(PublisherName);
                                 _publisher.Publish(message: string.Format("[{0}]", string.Join(",", logList)));
-                            }
+
                         }
                         catch (Exception e1)
                         {
@@ -211,7 +213,7 @@ namespace Bb.LogAppender
                                 foreach (var item in logList)
                                     queue2.Enqueue(item);
 
-                                while (_bufferQueue.TryDequeue(out var log))    
+                                while (_bufferQueue.TryDequeue(out var log))
                                     queue2.Enqueue(log);
 
                                 _bufferQueue = queue2;
