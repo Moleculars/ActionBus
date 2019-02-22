@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Reflection;
 
 namespace Bb.ComponentModel
@@ -17,6 +16,9 @@ namespace Bb.ComponentModel
             _startWith = startWith;
             _inheritFrom = inheritFrom;
         }
+
+
+        public string Context { get; set; }
 
         /// <summary>
         /// Return list of method for the specified arguments
@@ -34,7 +36,7 @@ namespace Bb.ComponentModel
             this.returnType = returnType;
 
             Type[] types = GetTypes();
-            var actions = GetActions_Impl<T>(bindings, GetTypes());
+            var actions = GetActions_Impl<T>(bindings, types);
 
             if (!string.IsNullOrEmpty(_startWith))
                 return actions.Where(c => c.RuleName.StartsWith(_startWith)).ToList();
@@ -45,10 +47,12 @@ namespace Bb.ComponentModel
 
         public virtual Type[] GetTypes()
         {
-            var types = _typeReferential.GetTypesWithAttributes(typeof(ExposeClassAttribute));
 
-            if (_inheritFrom != null)
-                return types.Where(c => c.IsAssignableFrom(_inheritFrom)).ToArray();
+            var t = _inheritFrom ?? typeof(object);
+
+            var types = !string.IsNullOrEmpty(Context)
+                ? _typeReferential.GetTypesWithAttributes<ExposeClassAttribute>(t, attribute => attribute.Context == Context)
+                : _typeReferential.GetTypesWithAttributes(typeof(ExposeClassAttribute));
 
             return types.ToArray();
 
@@ -67,20 +71,24 @@ namespace Bb.ComponentModel
             foreach (var type in types)
             {
 
+                ExposeClassAttribute attribute1 = Attribute.GetCustomAttribute(type, typeof(ExposeClassAttribute)) as ExposeClassAttribute;
+                string name = attribute1.DisplayName ?? type.Name;
+
                 var items = MethodDiscovery.GetMethods(type, bindings, returnType, methodSign);
 
                 foreach (var method in items)
                 {
 
-                    RegisterMethodAttribute attribute = Attribute.GetCustomAttribute(method, typeof(RegisterMethodAttribute)) as RegisterMethodAttribute;
-                    if (attribute != null)
+                    RegisterMethodAttribute attribute2 = Attribute.GetCustomAttribute(method, typeof(RegisterMethodAttribute)) as RegisterMethodAttribute;
+                    if (attribute2 != null && (string.IsNullOrEmpty(Context) || attribute2.Context == Context))
                         _result.Add(new BusinessAction<T>
                         {
+                            Name = $"{name}.{attribute2.DisplayName}",
                             Method = method,
                             Type = type,
-                            RuleName = attribute.DisplayName,
+                            RuleName = attribute2.DisplayName,
                             Origin = $"Assembly {type.AssemblyQualifiedName}",
-                            Context = attribute.Context,
+                            Context = attribute2.Context,
                         });
                 }
             }

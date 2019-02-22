@@ -41,7 +41,7 @@ namespace Bb.Core.ComponentModel
                     if (convertMethod == null) // try in custom class
                     {
 
-                        var _types = TypeDiscovery.Instance.GetTypesWithAttributes<ExposeClassAttribute>((attr) => attr.Context == Constants.Cast).ToList();
+                        var _types = TypeDiscovery.Instance.GetTypesWithAttributes<ExposeClassAttribute>(null, (attr) => attr.Context == Constants.Cast).ToList();
                             //.Where(c1 => c1.GetCustomAttributes(typeof(ExposeClassAttribute), false).Cast<ExposeClassAttribute>().First().Context == Constants.Cast)
                             //.ToList();
 

@@ -93,7 +93,7 @@ namespace Bb.ActionBus
 
             var argument2 = Expression.Parameter(typeof(string[]), "arguments");
 
-            var method = item.GetCallAction(argument1, argument2, variables);
+            var method = item.GetembeddedCallAction(argument1, argument2, variables);
 
 
             List<Expression> _instructions = new List<Expression>();

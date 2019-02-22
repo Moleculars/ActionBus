@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 
@@ -12,6 +11,25 @@ namespace Bb.ComponentModel
     /// </summary>
     public static class MethodDiscovery
     {
+
+        /// <summary>
+        /// Return the list of method from list of types
+        /// </summary>
+        /// <param name="types">list of type where search method</param>
+        /// <param name="returnType">Not evaluated if null</param>
+        /// <param name="parameters">Not evaluated if null</param>
+        /// <returns></returns>
+        public static IEnumerable<MethodInfo> GetMethods(IEnumerable<Type> types, BindingFlags bindings, Type returnType, List<Type> parameters)
+        {
+            List<MethodInfo> _methods = new List<MethodInfo>();
+            foreach (var type in types)
+            {
+                var methods = type.GetMethods(bindings).ToList()
+                    .Where(c => (returnType == null || c.ReturnType == returnType) && (parameters == null || EvaluateMethodParameters(c, parameters))).ToList();
+                _methods.AddRange(methods);
+            }
+            return _methods;
+        }
 
         /// <summary>
         /// Return the list of method

@@ -24,16 +24,14 @@ namespace Bb.ComponentModel
 
         }
 
+        
         /// <summary>
         /// Return an expression from the method
         /// </summary>
         /// <param name="argumentContext"></param>
         /// <returns></returns>
-        public (ParameterExpression, Expression) GetCallAction(Expression instance, Expression parameters, Expression[] arguments)
+        public MethodCallExpression GetCallMethod(Expression instance, Expression[] arguments)
         {
-
-            var variableResult = Expression.Variable(typeof(object), "result");
-
             // build custom method
             var _parameters = Method.GetParameters();
             List<Expression> _args = TranslateArguments(arguments, _parameters); // Force type of argument to match with type of parameters of the method
@@ -43,8 +41,21 @@ namespace Bb.ComponentModel
                 : Expression.Call(instance, Method, _args.ToArray())
                 ;
 
+            return m;
+        }
+
+        /// <summary>
+        /// Return an expression from the method
+        /// </summary>
+        /// <param name="argumentContext"></param>
+        /// <returns></returns>
+        public (ParameterExpression, Expression) GetembeddedCallAction(Expression instance, Expression parameters, Expression[] arguments)
+        {
+
+            MethodCallExpression m = GetCallMethod(instance, arguments);
             MethodCallExpression m2 = EmbedLog(arguments, m, parameters);
 
+            var variableResult = Expression.Variable(typeof(object), "result");
             TryExpression _try = EmbedTryCatch(arguments, variableResult, m2, parameters);
 
             return (variableResult, _try);
@@ -75,6 +86,7 @@ namespace Bb.ComponentModel
 
         private MethodCallExpression EmbedLog(Expression[] arguments, MethodCallExpression m, Expression parameters)
         {
+
             // Build log method
             List<Expression> _parameterLogResultArgument = new List<Expression>(arguments.Length + 2) { Expression.Constant(RuleName)};
 
@@ -87,7 +99,9 @@ namespace Bb.ComponentModel
             _parameterLogResultArgument.Add(parameters);
             MethodInfo method2 = typeof(BusinessAction<TContext>).GetMethod("LogResult", BindingFlags.Static | BindingFlags.Public);
             var m2 = Expression.Call(method2, _parameterLogResultArgument.ToArray()); // Business Method with log
+
             return m2;
+
         }
 
         /// <summary>
@@ -137,12 +151,18 @@ namespace Bb.ComponentModel
             {
 
                 var argument = arguments[i];
-                var parameter = parameters[i];
+                if (parameters.Length > i)
+                {
 
-                if (argument.Type != parameter.ParameterType)
-                    argument = argument.SmartConvert(parameter.ParameterType);
+                    var parameter = parameters[i];
 
-                _args.Add(argument);
+                    if (argument.Type != parameter.ParameterType)
+                        argument = argument.SmartConvert(parameter.ParameterType);
+
+                    _args.Add(argument);
+                }
+                else
+                    break;
 
             }
 
@@ -232,6 +252,7 @@ namespace Bb.ComponentModel
         public Type Type { get; internal set; }
 
         public string Origin { get; internal set; }
+        public string Name { get; internal set; }
     }
 
 }

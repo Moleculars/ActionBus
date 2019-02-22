@@ -1,5 +1,4 @@
 ﻿using Bb.ActionBus;
-using Bb.Brokers;
 using Bb.ComponentModel;
 using Bb.ComponentModel.Attributes;
 using Microsoft.Extensions.Configuration;
@@ -16,28 +15,23 @@ namespace ServiceBusAction.Builders
     public static class ActionRepositoriesBuilderExtensions
     {
 
-                /// <summary>
+        /// <summary>
         /// Add a service which will crawl all modules for top level main menu pages.
         /// </summary>
         public static ActionRepositories CreateActionRepositories(this IServiceCollection services)
         {
-
             var reps = new ActionRepositories(10);
             services.AddSingleton(reps);
             return reps;
-
         }
 
-        /// <summary>
-        /// Add a service which will crawl all modules for top level main menu pages.
-        /// </summary>
         public static IServiceProvider RegisterBusinessActions(this IServiceProvider serviceProvider)
         {
 
-            var actionRepositories = serviceProvider.GetService(typeof(Bb.ActionBus.ActionRepositories)) as Bb.ActionBus.ActionRepositories;
+            var actionRepositories = serviceProvider.GetService(typeof(Bb.ActionBus.ActionRepositories)) as ActionRepositories;
             actionRepositories.Inject(serviceProvider);
 
-            var types = TypeDiscovery.Instance.GetTypesWithAttributes<ExposeClassAttribute>((attr) => attr.Context == "BusinessAction").ToList();
+            var types = TypeDiscovery.Instance.GetTypesWithAttributes<ExposeClassAttribute>(typeof(object), (attr) => attr.Context == "BusinessAction").ToList();
             foreach (var item in types)
                 actionRepositories.Register(item);
 

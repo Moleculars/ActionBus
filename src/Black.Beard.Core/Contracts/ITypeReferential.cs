@@ -28,6 +28,15 @@ namespace Bb.ComponentModel
         List<Type> GetTypesWithAttributes(Type baseType, Type attributeType);
 
         /// <summary>
+        /// return a list of type that assignable from the specified type
+        /// </summary>
+        /// <param name="baseType">The base type.</param>
+        /// <param name="attributeType">The type.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NullReferenceException">type</exception>
+        List<Type> GetTypesWithAttributes<T>(Type baseType, Func<T, bool> filter) where T : Attribute;
+
+        /// <summary>
         /// return a list of type that assignable from the specified base type
         /// </summary>
         /// <param name="baseType">The type.</param>

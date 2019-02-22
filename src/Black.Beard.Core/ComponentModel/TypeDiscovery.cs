@@ -163,20 +163,25 @@ namespace Bb.ComponentModel
         /// <typeparam name="T"></typeparam>
         /// <param name="filter"></param>
         /// <returns></returns>
-        public List<Type> GetTypesWithAttributes<T>(Func<T, bool> filter) where T : Attribute
+        public List<Type> GetTypesWithAttributes<T>(Type typebase, Func<T, bool> filter) where T : Attribute
         {
             var result = new List<Type>();
             var assemblies = Assemblies().ToArray();
             result.AddRange(Collect(type =>
             {
-                var attributes = Attribute.GetCustomAttributes(type, typeof(T));
 
-                if (attributes.Length == 0)
-                    return false;
+                if (typebase != null || type.IsAssignableFrom(typebase))
+                {
 
-                foreach (T attribute in attributes)
-                    if (filter(attribute))
-                        return true;
+                    var attributes = Attribute.GetCustomAttributes(type, typeof(T));
+
+                    if (attributes.Length == 0)
+                        return false;
+
+                    foreach (T attribute in attributes)
+                        if (filter(attribute))
+                            return true;
+                }
 
                 return false;
 
