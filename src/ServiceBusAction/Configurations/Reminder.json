@@ -1,0 +1,14 @@
+{
+
+
+
+  "ReminderConfiguration": {
+    
+    "Republisher": "subscriberAction",
+    "ConnectionString": "Data Source=.\\SQLEXPRESS;Initial Catalog=Reminder;Integrated Security=True",
+    "WakeUpIntervalSeconds": 20
+  
+      
+  }
+
+}

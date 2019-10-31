@@ -1,0 +1,85 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "CustomAccessConfiguration`1",
+  "definitions": {
+    "ExposedAttributeTypeConfiguration": {
+      "id": "ExposedAttributeTypeConfiguration",
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "TypeName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "Context": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "Name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "LifeCycle": {
+          "type": "string",
+          "enum": [
+            "Transient",
+            "Singleton",
+            "Scoped"
+          ]
+        },
+        "ExposedType": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ExposedTypeConfiguration": {
+      "id": "ExposedTypeConfiguration",
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "TypeName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "Attributes": {
+          "id": "List`1",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/ExposedAttributeTypeConfiguration"
+          }
+        }
+      }
+    }
+  },
+  "type": "object",
+  "properties": {
+    "ExposedTypes": {
+      "id": "ExposedTypeConfigurations",
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/definitions/ExposedTypeConfiguration"
+      }
+    }
+  }
+}

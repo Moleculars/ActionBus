@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Black.Beard.Brokers.Contracts" Version="1.0.2" />
+    <PackageReference Include="Black.Beard.Contracts" Version="1.0.2" />
+    <PackageReference Include="Black.Beard.Core" Version="1.0.2" />
+    <PackageReference Include="Black.Beard.RabbitMq" Version="1.0.2" />
+    <PackageReference Include="Black.Beard.RabbitMq.Logs" Version="1.0.2" />
+    <PackageReference Include="Black.Beard.Sdk.Brokers.Configurations" Version="1.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="2.2.0" />
+  </ItemGroup>
+
+</Project>

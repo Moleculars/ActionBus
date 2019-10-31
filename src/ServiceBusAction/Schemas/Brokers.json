@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "CustomAccessConfiguration`1",
+  "definitions": {
+    "BrokerConfiguration": {
+      "id": "BrokerConfiguration",
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "Test": {
+          "type": "boolean"
+        },
+        "TestWaiting": {
+          "type": "integer"
+        },
+        "Servers": {
+          "id": "String[]",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "Publishers": {
+          "id": "String[]",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "Subsribers": {
+          "id": "String[]",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "Loggers": {
+          "id": "String[]",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "type": "object",
+  "properties": {
+    "Brokers": {
+      "$ref": "#/definitions/BrokerConfiguration"
+    }
+  }
+}

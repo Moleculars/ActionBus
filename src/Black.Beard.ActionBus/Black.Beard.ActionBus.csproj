@@ -1,13 +1,14 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>Bb</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Black.Beard.ComponentModel\Src\Black.Beard.ComponentModel\Black.Beard.ComponentModel.csproj" />
+    <ProjectReference Include="..\..\..\Black.Beard.Expressions\Src\Black.Beard.Expressions\Black.Beard.Expressions.csproj" />
     <ProjectReference Include="..\Black.Beard.ActionBus.Messages\Black.Beard.ActionBus.Messages.csproj" />
-    <ProjectReference Include="..\Black.Beard.Core\Black.Beard.Core.csproj" />
   </ItemGroup>
 
 </Project>

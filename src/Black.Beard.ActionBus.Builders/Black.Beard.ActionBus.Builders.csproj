@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <RootNamespace>Bb.ActionBus.Builders</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Black.Beard.RabbitMq.Logs" Version="1.0.7" />
+    <PackageReference Include="Black.Beard.Reminder" Version="1.0.16" />
+    <PackageReference Include="Black.Beard.ReminderResponse.Broker" Version="1.0.16" />
+    <PackageReference Include="Black.Beard.ReminderStore.Sgbd" Version="1.0.16" />
+    <PackageReference Include="Black.Beard.Sdk.Brokers.Configurations" Version="1.0.7" />
+    <PackageReference Include="Microsoft.AspNetCore.Hosting.Abstractions" Version="2.1.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.1.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="2.1.1" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Black.Beard.ComponentModel\Src\Black.Beard.ComponentModel.Attributes\Black.Beard.ComponentModel.Attributes.csproj" />
+    <ProjectReference Include="..\Black.Beard.ActionBus.Messages\Black.Beard.ActionBus.Messages.csproj" />
+    <ProjectReference Include="..\Black.Beard.ActionBus.Reminder\Black.Beard.ActionBus.Reminder.csproj" />
+    <ProjectReference Include="..\Black.Beard.ActionBus\Black.Beard.ActionBus.csproj" />
+  </ItemGroup>
+
+</Project>

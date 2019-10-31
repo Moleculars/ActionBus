@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.1</TargetFramework>
@@ -11,7 +11,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Black.Beard.Core" Version="1.0.11" />
     <PackageReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.1.1" />
     <PackageReference Include="Microsoft.AspNetCore.Razor.Design" Version="2.1.2" PrivateAssets="All" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.0.2105168" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="2.1.1" />
@@ -19,20 +21,27 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Black.Beard.ActionBus\Black.Beard.ActionBus.csproj" />
-    <ProjectReference Include="..\Black.Beard.Core\Black.Beard.Core.csproj" />
+    <ProjectReference Include="..\Black.Beard.ActionBus.Builders\Black.Beard.ActionBus.Builders.csproj" />
     <ProjectReference Include="..\Black.Beard.Logs.Serilog\Black.Beard.Logs.Serilog.csproj" />
-    <ProjectReference Include="..\Black.Beard.RabbitMq\Black.Beard.RabbitMq.csproj" />
+    <ProjectReference Include="..\Black.Beard.Web\Black.Beard.Web.csproj" />
     <ProjectReference Include="..\MyCustoLib1\MyCustoLib1.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Update="Configurations\docker.json">
+    <Content Update="Configurations\ExposedTypes.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Update="Configurations\appsettings.json">
+    <Content Update="Configurations\Reminder.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="Configurations\brokers.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+
+  <ProjectExtensions><VisualStudio><UserProperties Configurations_4brokers_1json__JSONSchema="..\Schemas\Brokers.json" Configurations_4ExposedTypes_1json__JSONSchema="..\Schemas\ExposedTypes.json" Schemas_4Brokers_1json__JSONSchema="" /></VisualStudio></ProjectExtensions>
 
 </Project>

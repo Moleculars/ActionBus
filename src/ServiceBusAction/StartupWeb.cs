@@ -1,14 +1,20 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using Bb.ActionBus.Builders;
+using Bb.Builders;
+using Bb.Middleware;
+using Bb.Web;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
-using ServiceBusAction.Builders;
+using Microsoft.IdentityModel.Tokens;
 using Swashbuckle.AspNetCore.Swagger;
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace ServiceBusAction
 {
@@ -20,6 +26,7 @@ namespace ServiceBusAction
         {
             Configuration = configuration;
             _useSwagger = configuration.GetValue<bool>(ServiceConstants.UseSwagger);
+
         }
 
         public IConfiguration Configuration { get; }
@@ -27,6 +34,10 @@ namespace ServiceBusAction
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+
+            _builder = new ActionBusBuilder();
+
+            services.RegisterConfigurations(Configuration);
 
             services.AddMvc()
                 .SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
@@ -64,16 +75,9 @@ namespace ServiceBusAction
                 });
             }
 
-            var brokers = services.RegisterBrokers(Configuration);
-            Configuration.RegisterLogToBrokers(brokers);
-            Configuration.RegisterCustomCode();
+            _builder.Initialize(services, Configuration);
 
-            services.CreateActionRepositories();
-
-
-            Configuration.CreateSubscriptionInstances(services, brokers);
-
-            //services.BuildServiceProvider()
+            // services.Configure<object>("", Configuration);
 
         }
 
@@ -81,33 +85,31 @@ namespace ServiceBusAction
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
 
-            app.ApplicationServices
-                .RegisterBusinessActions()
-                .RegisterListeners();
+            _builder.Configure(app, env);
 
             if (env.IsDevelopment())
-            {
                 app.UseDeveloperExceptionPage();
-            }
-            else
-            {
-                app.UseHsts();
-            }
 
-            app.UseHttpsRedirection();
-            app.UseMvc();
+            else
+                app.UseHsts();
+
+            app.UseAuthentication()
+               .UseHttpsRedirection()
+               .UseMvc()
+            ;
 
             string Namespace = Configuration.GetValue<string>(ServiceConstants.Namespace);
 
             // Load static content from module assemblies
             var staticProviders = AppDomain.CurrentDomain.GetAssemblies().AsParallel()
                .Where(a => a.FullName.StartsWith(Namespace) && !a.FullName.Contains("Tests,"))
-               //.Where(a => a.GetTypes().Any(t => t.GetCustomAttributes(typeof(ModuleTopLevelWebPageAttribute)).Any()))
                .Select(a => new EmbeddedFileProvider(a)).ToList<IFileProvider>();
 
             staticProviders.Add(new PhysicalFileProvider(Path.Join(env.ContentRootPath, "wwwroot")));
 
-            app.UseMiddleware<LoggingMiddleware>();
+            app
+                .UseMiddleware<LoggingCatchMiddleware>()
+                ;
 
             if (_useSwagger)
             {
@@ -147,13 +149,18 @@ namespace ServiceBusAction
 
             //});
 
-
-
         }
 
+        private class InitializationAssembly
+        {
+            public string Folder { get; set; }
+            public string Assembly { get; set; }
+            public string AssemblyPdb { get; set; }
+            public string Builder { get; set; }
+        }
 
         private readonly bool _useSwagger;
-
+        private ActionBusBuilder _builder;
     }
 
 }

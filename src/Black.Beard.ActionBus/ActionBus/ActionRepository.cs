@@ -1,12 +1,14 @@
 ﻿using Bb.ComponentModel;
 using Bb.ComponentModel.Attributes;
 using Bb.ComponentModel.Factories;
-using Bb.Core.Pools;
+using Bb.Expresssions;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 
 namespace Bb.ActionBus
 {
@@ -14,113 +16,271 @@ namespace Bb.ActionBus
     internal abstract class ActionRepository
     {
 
-        internal abstract void Initialize(Dictionary<string, ActionModel> dic, int countInstance);
+        internal abstract void Initialize(Dictionary<string, ActionModel> dic);
 
     }
 
-    internal class ActionRepository<T> : ActionRepository
-        where T : class
+    internal class ActionRepository<TType, TContext> : ActionRepository
+        where TType : class
+        where TContext : ActionBusContext, new()
     {
 
-        internal ActionRepository(ITypeReferential typeReferential, IServiceProvider configuration)
+        static ActionRepository()
+        {
+            _getValue = typeof(ActionOrder).GetMethod("GetValue", BindingFlags.Public | BindingFlags.Instance);
+
+        }
+
+        internal ActionRepository(ITypeReferential typeReferential)
         {
 
             _types = typeReferential;
-            _serviceProvider = configuration;
 
-            Factory<T> factory = null;
-
-            if (configuration != null)
-            {
-                factory = new Factory<T>(typeof(IServiceProvider)); // ?? new Factory<T>();
-                if (!factory.IsEmpty)
-                    _ctor = () => factory.Create(_serviceProvider);
-            }
-
-            if (factory == null || factory.IsEmpty)
-            {
-                factory = new Factory<T>();
-                if (!factory.IsEmpty)
-                    _ctor = () => factory.Create();
-                else
-                    Trace.WriteLine($"failed to create ctor factory for {typeof(T)}", TraceLevel.Error.ToString());
-
-            }
-
-            if (Attribute.GetCustomAttribute(_ctor().GetType(), typeof(ExposeClassAttribute)) is ExposeClassAttribute attribute)
-                _rootName = attribute.DisplayName;
+            var attribute = TypeDescriptor.GetAttributes(typeof(TType)).OfType<ExposeClassAttribute>().FirstOrDefault();
+            if (attribute != null)
+                _rootName = attribute.Name ?? typeof(TType).Name;
             else
                 _rootName = GetType().Name;
 
         }
 
-        internal override void Initialize(Dictionary<string, ActionModel> dic, int countInstance)
+        internal override void Initialize(Dictionary<string, ActionModel> dic)
         {
 
-            var provider = new ActionMethodDiscovery(typeof(T));
-            var actions = provider.GetActions<object>(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public, null, null)
-                .Where(c => c.Context == "BusinessAction")
+            var provider = new ActionMethodDiscovery(typeof(TType)) { Context = ActionOrder.BusinessActionBusContants };
+            var actions = provider.GetActions(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public, null, null)
                 .ToList()
                 ;
 
-            Trace.WriteLine($"Register custom type '{typeof(T)}' -> '{_rootName}'");
+            Trace.WriteLine($"Register custom type '{typeof(TType)}' -> '{_rootName}'");
 
             foreach (var item in actions)
             {
-
-                var act = new ActionModel<T>(new ObjectPool<T>(_ctor, 10))
+                var parameters = item.Item4.GetParameters();
+                if (parameters.Length > 0 && typeof(TContext).IsAssignableFrom(parameters[0].ParameterType))
                 {
-                    Name = _rootName + "." + item.RuleName,
-                    Delegate = CreateDelegate(item),
-                    Parameters = item.Method.GetParameters().Select(c => new KeyValuePair<string, Type>(c.Name, c.ParameterType)).ToList(),
-                    Origin = item.Origin,
-                    Type = item.Type,
-                };
+                    var name = _rootName + "." + item.Item3.DisplayName;
+                    var act = new ActionModel<TType, TContext>((item.Item4.Attributes & MethodAttributes.Static) == MethodAttributes.Static)
+                    {
+                        Type = item.Item1,
+                        Name = name,
+                        Delegate = CreateDelegate(item, name),
+                        Parameters = parameters.Select(c => new KeyValuePair<string, Type>(c.Name, c.ParameterType)).ToList(),
 
-                Trace.WriteLine($"Register custom action '{act.Name}' -> {item.Method.ToString()}");
+                    };
 
-                dic.Add(act.Name, act);
+                    Trace.WriteLine($"Register custom action '{act.Name}' -> {item.Item4.ToString()}");
+
+                    dic.Add(act.Name, act);
+                }
 
             }
 
         }
 
-        private static Func<T, string[], object> CreateDelegate(BusinessAction<object> item)
+        private static Action<TType, TContext, ActionOrder> CreateDelegate((Type, ExposeClassAttribute, ExposeMethodAttribute, MethodInfo) item, string name)
         {
 
-            var argument1 = Expression.Parameter(typeof(T), "instance");
-            var variables = item.Method.GetParameters().Select(c => Expression.Variable(typeof(string), c.Name)).ToArray();
+            SourceCodeMethod code = new SourceCodeMethod();
 
-            var argument2 = Expression.Parameter(typeof(string[]), "arguments");
+            var args = item.Item4.GetParameters();
 
-            var method = item.GetembeddedCallAction(argument1, argument2, variables);
+            var argument1 = code.AddParameter(typeof(TType), "instance");
+            var argument2 = code.AddParameter(typeof(TContext), "ctx");
+            var argument3 = code.AddParameter(typeof(ActionOrder), "order");
 
+            var _resultVariable = code.AddVar(typeof(object), "_result");
 
-            List<Expression> _instructions = new List<Expression>();
-            for (int i = 0; i < variables.Length; i++)
-                _instructions.Add(Expression.Assign(variables[i], Expression.ArrayIndex(argument2, Expression.Constant(i))));
-            _instructions.Add(method.Item2);
+            code.Assign(_resultVariable, ExpressionHelper.AsConstant(null));
 
-            var returnTarget = Expression.Label(typeof(object));
-            _instructions.Add(Expression.Return(returnTarget, method.Item1, typeof(object)));
-            _instructions.Add(Expression.Label(returnTarget, Expression.Default(typeof(object))));
+            List<Expression> variables = new List<Expression>();
+            for (int i = 0; i < args.Length; i++)
+            {
+                var parameter = args[i];
 
-            var vars = variables.ToList();
-            //vars.Add(argument2);
-            vars.Add(method.Item1);
-            var blk = Expression.Block(vars.ToArray(), _instructions.ToArray());
-            var finaleMethod = Expression.Lambda<Func<T, string[], object>>(blk, new ParameterExpression[] { argument1, argument2 });
+                if (parameter.ParameterType == typeof(TContext))
+                    variables.Add(argument2);
+                
+                else
+                {
+                    var m = _getValue.MakeGenericMethod(parameter.ParameterType);
+                    var u = code.AddVar(parameter.ParameterType, "_" + parameter.Name);
+                    code.Assign(u, argument3.Call(m, parameter.Name.AsConstant()));
+                    variables.Add(u);
+                }
+
+            }
+
+            GetembeddedCallAction(code, item, argument1, argument2, variables.ToArray(), name); // Copied in local for understand
+
+            var finaleMethod = code.GenerateLambda<Action<TType, TContext, ActionOrder>>();
 
             var _delegate = finaleMethod.Compile();
 
             return _delegate;
         }
 
+
+
+        #region PackageMethod (copied of Black.beard.Core.BusinessAction<TContext> for understand what doing the packaging)
+
+        /// <summary>
+        /// Return an expression from the method
+        /// </summary>
+        /// <param name="argumentContext"></param>
+        /// <returns></returns>
+        public static MethodCallExpression GetCallMethod(MethodInfo method, Expression instance, Expression[] arguments)
+        {
+
+            var m = instance == null    // Business method
+                ? method.Call(arguments)
+                : instance.Call(method, arguments)
+                ;
+
+            return m;
+
+        }
+
+        /// <summary>
+        /// Return an expression from the method
+        /// </summary>
+        /// <param name="argumentContext"></param>
+        /// <returns></returns>
+        public static void GetembeddedCallAction(
+            SourceCodeMethod code,
+            (Type, ExposeClassAttribute, ExposeMethodAttribute, MethodInfo) item,
+            Expression instance,
+            ParameterExpression ctx, 
+            Expression[] arguments,
+            string name
+            )
+        {
+
+            var property = typeof(TContext).GetProperty("Result");
+
+            Expression m = GetCallMethod(item.Item4, instance, arguments);
+
+            var _try = new SourceCode();
+
+            if (item.Item4.ReturnType != typeof(void))
+            {
+                m = ctx.Property(property).AssignFrom(m);
+                _try.Add(m)
+                    .Add(GetCallLogAction(item.Item4, name, ctx.Property(property), ctx, arguments))
+                    ;
+            }
+            else
+            {
+                _try.Add(m)
+                    .Add(GetCallLogAction(item.Item4, name, ExpressionHelper.AsConstant(null), ctx, arguments))
+                    ;
+            }
+
+            var catchBlk = new SourceCode()
+            {
+
+            };
+
+            var p1 = catchBlk.AddVar(typeof(Exception), "exception");
+
+            code.Try
+                (
+
+                    _try,
+
+                    new CatchStatement()
+                    {
+                        Parameter = p1,
+                        Body = catchBlk
+                            .Add(GetCallLogActionException(item.Item4, name, p1, ctx, arguments))
+                            .ReThrow()
+                    }
+
+                );
+        
+        }
+
+
+        /// <summary>
+        /// Return an expression from the method
+        /// </summary>
+        /// <param name="argumentContext"></param>
+        /// <returns></returns>
+        public static Expression GetCallLogAction(MethodInfo methodLog, string rulename, Expression result, ParameterExpression _context, params Expression[] arguments)
+        {
+
+            // build custom method
+            List<Expression> _args = new List<Expression>(arguments.Length);
+            var parameters = methodLog.GetParameters()
+                .ToArray();
+
+            // Build log method
+            List<Expression> _argValues = new List<Expression>();
+            List<Expression> _argNames = new List<Expression>();
+
+            for (int i = 0; i < arguments.Length; i++)
+            {
+                var argument = arguments[i];
+                _argNames.Add(Expression.Constant(parameters[i].Name));
+                _argValues.Add(argument.ConvertIfDifferent(typeof(object)));
+            }
+
+            var call = BusinessLog<TContext>.MethodLogResult.Call(
+                rulename.AsConstant(),
+                result,
+                _context,
+                typeof(string).NewArray(_argNames),
+                typeof(object).NewArray(_argValues)
+            );
+
+            return call;
+
+        }
+
+        /// <summary>
+        /// Return an expression from the method
+        /// </summary>
+        /// <param name="argumentContext"></param>
+        /// <returns></returns>
+        public static Expression GetCallLogActionException(MethodInfo method, string rulename, ParameterExpression parameter, ParameterExpression _context, params Expression[] arguments)
+        {
+
+            // build custom method
+            List<Expression> _args = new List<Expression>(arguments.Length);
+            var parameters = method.GetParameters()
+                .ToArray();
+
+            // Build log method
+            List<Expression> _argValues = new List<Expression>();
+            List<Expression> _argNames = new List<Expression>();
+
+            for (int i = 0; i < arguments.Length; i++)
+            {
+                var argument = arguments[i];
+                _argNames.Add(Expression.Constant(parameters[i].Name));
+                _argValues.Add(argument.ConvertIfDifferent(typeof(object)));
+            }
+
+            var call = BusinessLog<TContext>.MethodLogResultException.Call(
+                rulename.AsConstant(),
+                parameter,
+                _context,
+                typeof(string).NewArray(_argNames),
+                typeof(object).NewArray(_argValues)
+            );
+
+            return call;
+
+        }
+
+
+        #endregion
+
+        private static readonly MethodInfo _getValue;
         private readonly ITypeReferential _types;
-        private readonly IServiceProvider _serviceProvider;
-        private readonly Func<T> _ctor;
         private readonly string _rootName;
 
     }
+
 
 }

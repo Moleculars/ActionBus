@@ -1,11 +1,12 @@
-﻿using Bb.Core.Helpers;
-using Bb.Logs.Serilog;
+﻿using Bb.Helpers;
+using Bb.Web;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Diagnostics;
-using System.IO;
+using System.Reflection;
 
 namespace ServiceBusAction
 {
@@ -15,12 +16,13 @@ namespace ServiceBusAction
         public static void Main(string[] args)
         {
 
-            var serviceHostBuilder = CreateServiceHostBuilder(args)
-                .UseStartup<StartupWeb>()
-                ;
 
-            using (var listener = SerilogTraceListener.Initialize()) // Register log
+            using (Bb.Logs.Serilog.SerilogTraceListener.Initialize())
             {
+
+                var serviceHostBuilder = CreateServiceHostBuilder(args)
+                    .UseStartup<StartupWeb>()
+                    ;
 
                 // Start service
                 using (var serviceHost = serviceHostBuilder.Build())
@@ -49,7 +51,6 @@ namespace ServiceBusAction
 
                 }
 
-
             }
 
         }
@@ -57,29 +58,69 @@ namespace ServiceBusAction
         public static IWebHostBuilder CreateServiceHostBuilder(string[] args)
         {
 
-            string path = @"D:\Src\ActionBus\src\ServiceBusAction\Configurations\";
-            var dir = new DirectoryInfo(path);
+            var _config = Initialization.Load();
 
             return WebHost.CreateDefaultBuilder(args)
                 .ConfigureAppConfiguration((context, config) =>
                 {
 
-                    var e = context.HostingEnvironment;
+                    var env = context.HostingEnvironment;
 
-                    foreach (var file in dir.GetFiles("*.json"))
-                        config.AddJsonFile(file.FullName, optional: false, reloadOnChange: false);
+                    config.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                          .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: true)
+                          .LoadDirectoriesJsonFiles(_config)
+                          .AddEnvironmentVariables()
+                          .AddCommandLine(args)
+                    ;
 
-                    config.AddEnvironmentVariables();
+                    if (env.IsDevelopment())
+                    {
 
+                        var appAssembly = Assembly.Load(new AssemblyName(env.ApplicationName));
+                        if (appAssembly != null)
+                            config.AddUserSecrets(appAssembly, optional: true);
 
-                    //config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
-                    //      .AddJsonFile("appsettings.developement.json", optional: true, reloadOnChange: false)
-                    //      .AddEnvironmentVariables();
+                    }
 
+                })
+                .ConfigureLogging((hostingContext, logging) =>
+                {
+
+                    var env = hostingContext.HostingEnvironment;
+                    var configLogging = hostingContext.Configuration.GetSection("Logging");
+                    logging.AddConfiguration(configLogging);
+                    if (env.IsDevelopment())
+                    {
+                        logging.AddConsole();
+                        logging.AddDebug();
+                    }
+
+                })
+                .UseDefaultServiceProvider((context, options) =>
+                {
+                    options.ValidateScopes = context.HostingEnvironment.IsDevelopment();
                 });
+
+            ;
 
         }
 
     }
+
+
+    //public class Provider : ConfigurationProvider
+    //{
+
+    //    public override void Load()
+    //    {
+    //        base.Load();
+    //    }
+
+    //    public override IEnumerable<string> GetChildKeys(IEnumerable<string> earlierKeys, string parentPath)
+    //    {
+    //        return base.GetChildKeys(earlierKeys, parentPath);
+    //    }
+
+    //}
 
 }

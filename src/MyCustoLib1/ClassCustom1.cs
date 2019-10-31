@@ -1,14 +1,15 @@
-﻿using Bb.Brokers;
-using Bb.ComponentModel.Attributes;
+﻿using Bb.ComponentModel.Attributes;
 using Microsoft.Extensions.Configuration;
 using System;
+using Bb.ActionBus;
+using Bb.Brokers;
 
 namespace MyCustoLib1
 {
 
     // every methods exposed to action bus can't be void.
-    
-    [ExposeClass("business1", Context = "BusinessAction")]
+
+    [ExposeClass("business1", Context = ActionBusContants.BusinessActionBus)]
     public class ClassCustom1
     {
 
@@ -26,7 +27,7 @@ namespace MyCustoLib1
 
         #region PushMom
 
-        [RegisterMethod("PushParent", Context = "BusinessAction")]
+        [ExposeMethod("PushParent", Context = ActionBusContants.BusinessActionBus)]
         public bool PushParent(Guid id, string status, bool requiredMoreMessage)
         {
 
@@ -51,7 +52,7 @@ namespace MyCustoLib1
 
         #region Message 2
 
-        [RegisterMethod("CancelScan", Context = "BusinessAction")]
+        [ExposeMethod("CancelScan", Context = ActionBusContants.BusinessActionBus)]
         public bool CancelMessage(Guid uuid)
         {
 
@@ -59,7 +60,7 @@ namespace MyCustoLib1
 
         }
 
-        [RegisterMethod("PushScan", Context = "BusinessAction")]
+        [ExposeMethod("PushScan", Context = ActionBusContants.BusinessActionBus)]
         public Guid PushMessage(string siteId, string scan)
         {
 

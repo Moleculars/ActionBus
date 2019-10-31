@@ -1,0 +1,33 @@
+# Windows full test environment with one of each middleware.
+# Only for DEV computers.
+# Everything on an internal network, with all important services NAT-ed for the developer direct usage.
+version: '3.4'
+services:
+
+  rabbit:
+    image: gaelgael5/windows.rabbit:latest
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    volumes:
+      - v_rabbit:c:/data/broker/
+    environment:
+      - MEMORY_AVAILABLE=1GB
+      - DISK_FREE_LIMIT=4GB
+      - ADMIN_USER=guest
+      - ADMIN_PASS=guest
+
+      
+  mongo:
+    image: gaelgael5/windows.mongodb:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - v_mongo:C:/data/mongo/
+    healthcheck:
+      disable: true
+    command: --journal --quiet --wiredTigerCacheSizeGB 1
+
+volumes:
+  v_rabbit:
+  v_mongo:
