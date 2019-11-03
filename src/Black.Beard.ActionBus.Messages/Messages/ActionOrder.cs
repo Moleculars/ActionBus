@@ -26,14 +26,20 @@ namespace Bb.ActionBus
 
         public ActionOrder()
         {
-            //
         }
 
-        public Guid Uuid { get; set; }
+        public string Uuid { get; set; }
+
+        public string Name { get; set; }
 
         public DateTimeOffset PushedAt { get; set; }
 
-        public string Name { get; set; }
+        public DateTimeOffset ExecutedAt { get; set; }
+
+        public object Result { get; set; }
+
+        public bool Success { get; set; }
+
 
         public Dictionary<string, ArgumentOrder> Arguments { get; set; } = new Dictionary<string, ArgumentOrder>();
 
@@ -52,12 +58,6 @@ namespace Bb.ActionBus
             return default;
 
         }
-
-        public DateTimeOffset ExecutedAt { get; set; }
-
-        public object Result { get; set; }
-
-        public bool Success { get; set; }
 
         public override string ToString()
         {

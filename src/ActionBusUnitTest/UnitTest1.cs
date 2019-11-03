@@ -18,7 +18,7 @@ namespace ActionBusUnitTest
 
             var o = new ActionOrder()
             {
-                Uuid = Guid.NewGuid(),
+                Uuid = Guid.NewGuid().ToString(),
                 Name = "actionTest",
                 ExecutedAt = ClockActionBus.Now(),
                 PushedAt = ClockActionBus.Now(),
@@ -68,7 +68,7 @@ namespace ActionBusUnitTest
             {
                 Name = "c1.run1",
                 PushedAt = DateTimeOffset.Now,
-                Uuid = Guid.NewGuid(),
+                Uuid = Guid.NewGuid().ToString(),
             }.Argument("arg1", "test2")
              .Argument("arg2", "2")
              .Argument("arg3", "2")

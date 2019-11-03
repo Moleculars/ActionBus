@@ -23,7 +23,7 @@ namespace Bb.ActionBus
                 {
 
                     case "Uuid":
-                        result.Uuid = Guid.Parse(item.Value.Value<string>());
+                        result.Uuid = item.Value.Value<string>();
                         break;
 
                     case "ExecutedAt":
